@@ -13,8 +13,3 @@ Siga as aulas em ordem. Cada uma adiciona uma parte funcional ao projeto e prepa
 ### Aula 1
 
 - [Criando as páginas Comes e Bebes com rotas no Ionic React](aula1/criando-paginas-e-rotas.md)
-
-### Aula 2
-
-- [Carregando listas de comidas e bebidas](aula2/lista-de-produtos.md)
- 

@@ -826,6 +826,6 @@ Com isso, o app começa a sair de telas fixas e passa a representar dados reais 
 
 ## 10. Próximo passo
 
-Na próxima aula, o projeto pode evoluir criando um componente próprio para exibir cada produto.
+Na próxima aula, o projeto pode evoluir melhorando o visual do cardápio com CSS.
 
-Assim, `TelaComes` e `TelaBebes` ficam mais limpas, e o código começa a ser dividido em partes menores, reaproveitáveis e mais fáceis de manter.
+As listas já estão funcionando. Agora faz sentido cuidar da aparência: espaçamento, cards, título, fundo da tela e destaque para o preço.
