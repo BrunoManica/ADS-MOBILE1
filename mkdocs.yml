@@ -30,3 +30,5 @@ nav:
   - Home: index.md
   - Aula 1:
     - Criando páginas e rotas: aula1/criando-paginas-e-rotas.md
+  - Aula 2:
+    - Listas de produtos: aula2/lista-de-produtos.md
