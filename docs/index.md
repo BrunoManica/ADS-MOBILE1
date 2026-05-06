@@ -18,3 +18,6 @@ Siga as aulas em ordem. Cada uma adiciona uma parte funcional ao projeto e prepa
 
 - [Carregando listas de comidas e bebidas](aula2/lista-de-produtos.md)
 
+### Aula 3
+
+- [Tabs e início do carrinho](aula3/tabs-e-carrinho.md)
