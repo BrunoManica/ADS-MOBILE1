@@ -20,4 +20,8 @@ Siga as aulas em ordem. Cada uma adiciona uma parte funcional ao projeto e prepa
 
 ### Aula 3
 
-- [Tabs e início do carrinho](aula3/tabs-e-carrinho.md)
+- [Tabs e tela de pedido](aula3/tabs-e-carrinho.md)
+
+### Aula 4
+
+- [Carrinho e finalização do pedido](aula4/carrinho-e-finalizacao-do-pedido.md)

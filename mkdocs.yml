@@ -33,4 +33,6 @@ nav:
   - Aula 2:
     - Listas de produtos: aula2/lista-de-produtos.md
   - Aula 3:
-    - Tabs e carrinho: aula3/tabs-e-carrinho.md
+    - Tabs e tela de pedido: aula3/tabs-e-carrinho.md
+  - Aula 4:
+    - Carrinho e finalizacao do pedido: aula4/carrinho-e-finalizacao-do-pedido.md

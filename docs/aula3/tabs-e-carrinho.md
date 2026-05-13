@@ -1,3 +1,455 @@
+# Aula 3: Navegacao com tabs e tela de pedido
+
+## Indice
+
+- [1. Objetivo da aula](#1-objetivo-da-aula)
+- [2. Resultado final](#2-resultado-final)
+- [3. Contexto](#3-contexto)
+- [4. Explicacao conceitual](#4-explicacao-conceitual)
+- [5. Setup inicial](#5-setup-inicial)
+- [6. Passo a passo](#6-passo-a-passo)
+- [7. Codigo completo](#7-codigo-completo)
+- [8. Erros comuns](#8-erros-comuns)
+- [9. Resumo](#9-resumo)
+- [10. Proximo passo](#10-proximo-passo)
+
+## 1. Objetivo da aula
+
+Nesta aula, voce vai trocar a navegacao simples por uma navegacao com tabs.
+
+Nas aulas anteriores, o app ja tinha as telas `Bebes` e `Comes`, com rotas separadas e listas de produtos. Agora vamos organizar essas telas em uma barra inferior e criar uma terceira tela chamada `Pedido`.
+
+Ao final da aula, o app tera:
+
+- Uma barra inferior com tabs.
+- Uma tab para `Bebes`.
+- Uma tab para `Comes`.
+- Uma tab para `Pedido`.
+- Uma tela `Pedido` inicial, ainda sem carrinho funcional.
+- Redirecionamento da rota `/` para `/bebes`.
+
+O carrinho, o botao `Adicionar`, o modal de produto e a finalizacao do pedido ficam para a Aula 4.
+
+## 2. Resultado final
+
+O app passa a ter uma navegacao inferior:
+
+```text
+[ Bebes ]   [ Comes ]   [ Pedido ]
+```
+
+As rotas principais ficam assim:
+
+```text
+/bebes
+/comes
+/pedido
+```
+
+Ao abrir o app pela rota raiz:
+
+```text
+/
+```
+
+O usuario sera enviado para:
+
+```text
+/bebes
+```
+
+A tela `Pedido` ainda sera simples:
+
+```text
+Pedido
+Tela de Pedido
+Seu pedido vai aparecer aqui.
+
+Nenhum item adicionado.
+```
+
+## 3. Contexto
+
+Um app mobile normalmente tem mais de uma area principal.
+
+No app de comanda, temos pelo menos tres areas importantes:
+
+- `Bebes`: lista de bebidas.
+- `Comes`: lista de comidas.
+- `Pedido`: lugar onde o pedido sera montado.
+
+Tabs sao uma boa escolha quando o usuario precisa alternar rapidamente entre areas principais do app.
+
+Nesta aula, a tab `Pedido` existe apenas como estrutura. Ela prepara o caminho para a proxima aula.
+
+## 4. Explicacao conceitual
+
+Ate agora, as rotas estavam dentro do `App.tsx`.
+
+Com tabs, a estrutura muda um pouco:
+
+```text
+App
+  IonReactRouter
+    TabsPrincipal
+      IonTabs
+        IonRouterOutlet
+          rotas das telas
+        IonTabBar
+          botoes das tabs
+```
+
+O `IonTabs` organiza a navegacao por abas.
+
+O `IonRouterOutlet` continua sendo o lugar onde as telas aparecem.
+
+O `IonTabBar` e a barra inferior.
+
+O `IonTabButton` representa cada botao da barra.
+
+## 5. Setup inicial
+
+Esta aula continua a partir da Aula 2.
+
+Arquivos que serao criados:
+
+```text
+src/pages/TabsPrincipal/TabsPrincipal.tsx
+src/pages/TelaPedido/TelaPedido.tsx
+```
+
+Arquivos que serao alterados:
+
+```text
+src/App.tsx
+src/pages/cardapio.css
+```
+
+Para rodar o projeto:
+
+```bash
+cd /caminho/para/o/projeto
+nvm use 24
+ionic serve
+```
+
+## 6. Passo a passo
+
+### 6.1 Criar a tela `Pedido`
+
+Crie a pasta:
+
+```text
+src/pages/TelaPedido
+```
+
+Dentro dela, crie:
+
+```text
+src/pages/TelaPedido/TelaPedido.tsx
+```
+
+Escreva:
+
+```tsx
+import {
+  IonContent,
+  IonHeader,
+  IonPage,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/react';
+import '../cardapio.css';
+
+const TelaPedido = () => {
+  return (
+    <IonPage className="cardapio-page">
+      <IonHeader>
+        <IonToolbar className="cardapio-toolbar">
+          <IonTitle className="cardapio-toolbar-title">Pedido</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent className="cardapio-content">
+        <div className="cardapio-container">
+          <div className="cardapio-topo">
+            <p className="cardapio-overline">Pedido</p>
+            <h1 className="cardapio-heading">Tela de Pedido</h1>
+            <p className="cardapio-meta">Seu pedido vai aparecer aqui.</p>
+          </div>
+
+          <div className="pedido-vazio">
+            <p>Nenhum item adicionado.</p>
+          </div>
+        </div>
+      </IonContent>
+    </IonPage>
+  );
+};
+
+export default TelaPedido;
+```
+
+Essa tela ainda nao tem regras de carrinho. Ela existe para completar a navegacao principal.
+
+### 6.2 Criar as tabs principais
+
+Crie a pasta:
+
+```text
+src/pages/TabsPrincipal
+```
+
+Dentro dela, crie:
+
+```text
+src/pages/TabsPrincipal/TabsPrincipal.tsx
+```
+
+Escreva:
+
+```tsx
+import { Redirect, Route } from 'react-router-dom';
+import {
+  IonIcon,
+  IonLabel,
+  IonRouterOutlet,
+  IonTabBar,
+  IonTabButton,
+  IonTabs,
+} from '@ionic/react';
+import { cafeOutline, cartOutline, restaurantOutline } from 'ionicons/icons';
+import TelaBebes from '../TelaBebes/TelaBebes';
+import TelaComes from '../TelaComes/TelaComes';
+import TelaPedido from '../TelaPedido/TelaPedido';
+
+const TabsPrincipal = () => {
+  return (
+    <IonTabs>
+      <IonRouterOutlet>
+        <Route exact path="/bebes" component={TelaBebes} />
+        <Route exact path="/comes" component={TelaComes} />
+        <Route exact path="/pedido" component={TelaPedido} />
+        <Route exact path="/">
+          <Redirect to="/bebes" />
+        </Route>
+      </IonRouterOutlet>
+
+      <IonTabBar slot="bottom">
+        <IonTabButton tab="bebes" href="/bebes">
+          <IonIcon icon={cafeOutline} />
+          <IonLabel>Bebes</IonLabel>
+        </IonTabButton>
+
+        <IonTabButton tab="comes" href="/comes">
+          <IonIcon icon={restaurantOutline} />
+          <IonLabel>Comes</IonLabel>
+        </IonTabButton>
+
+        <IonTabButton tab="pedido" href="/pedido">
+          <IonIcon icon={cartOutline} />
+          <IonLabel>Pedido</IonLabel>
+        </IonTabButton>
+      </IonTabBar>
+    </IonTabs>
+  );
+};
+
+export default TabsPrincipal;
+```
+
+Aqui temos tres partes importantes:
+
+- `IonRouterOutlet`: controla qual tela aparece.
+- `Route`: define cada caminho.
+- `IonTabBar`: mostra a barra inferior.
+
+### 6.3 Ajustar o `App.tsx`
+
+Abra:
+
+```text
+src/App.tsx
+```
+
+Remova os imports de:
+
+```tsx
+Redirect
+Route
+IonRouterOutlet
+TelaBebes
+TelaComes
+```
+
+Importe:
+
+```tsx
+import TabsPrincipal from './pages/TabsPrincipal/TabsPrincipal';
+```
+
+O componente `App` deve ficar assim:
+
+```tsx
+const App: React.FC = () => (
+  <IonApp>
+    <IonReactRouter>
+      <TabsPrincipal />
+    </IonReactRouter>
+  </IonApp>
+);
+```
+
+Agora as rotas ficam dentro de `TabsPrincipal`.
+
+### 6.4 Adicionar estilo para pedido vazio
+
+Abra:
+
+```text
+src/pages/cardapio.css
+```
+
+No final do arquivo, adicione:
+
+```css
+.pedido-vazio {
+  padding: 18px;
+  border: 1px solid #e8edf2;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #5e6670;
+}
+```
+
+## 7. Codigo completo
+
+### `src/pages/TelaPedido/TelaPedido.tsx`
+
+```tsx
+import {
+  IonContent,
+  IonHeader,
+  IonPage,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/react';
+import '../cardapio.css';
+
+const TelaPedido = () => {
+  return (
+    <IonPage className="cardapio-page">
+      <IonHeader>
+        <IonToolbar className="cardapio-toolbar">
+          <IonTitle className="cardapio-toolbar-title">Pedido</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent className="cardapio-content">
+        <div className="cardapio-container">
+          <div className="cardapio-topo">
+            <p className="cardapio-overline">Pedido</p>
+            <h1 className="cardapio-heading">Tela de Pedido</h1>
+            <p className="cardapio-meta">Seu pedido vai aparecer aqui.</p>
+          </div>
+
+          <div className="pedido-vazio">
+            <p>Nenhum item adicionado.</p>
+          </div>
+        </div>
+      </IonContent>
+    </IonPage>
+  );
+};
+
+export default TelaPedido;
+```
+
+### `src/pages/TabsPrincipal/TabsPrincipal.tsx`
+
+```tsx
+import { Redirect, Route } from 'react-router-dom';
+import {
+  IonIcon,
+  IonLabel,
+  IonRouterOutlet,
+  IonTabBar,
+  IonTabButton,
+  IonTabs,
+} from '@ionic/react';
+import { cafeOutline, cartOutline, restaurantOutline } from 'ionicons/icons';
+import TelaBebes from '../TelaBebes/TelaBebes';
+import TelaComes from '../TelaComes/TelaComes';
+import TelaPedido from '../TelaPedido/TelaPedido';
+
+const TabsPrincipal = () => {
+  return (
+    <IonTabs>
+      <IonRouterOutlet>
+        <Route exact path="/bebes" component={TelaBebes} />
+        <Route exact path="/comes" component={TelaComes} />
+        <Route exact path="/pedido" component={TelaPedido} />
+        <Route exact path="/">
+          <Redirect to="/bebes" />
+        </Route>
+      </IonRouterOutlet>
+
+      <IonTabBar slot="bottom">
+        <IonTabButton tab="bebes" href="/bebes">
+          <IonIcon icon={cafeOutline} />
+          <IonLabel>Bebes</IonLabel>
+        </IonTabButton>
+
+        <IonTabButton tab="comes" href="/comes">
+          <IonIcon icon={restaurantOutline} />
+          <IonLabel>Comes</IonLabel>
+        </IonTabButton>
+
+        <IonTabButton tab="pedido" href="/pedido">
+          <IonIcon icon={cartOutline} />
+          <IonLabel>Pedido</IonLabel>
+        </IonTabButton>
+      </IonTabBar>
+    </IonTabs>
+  );
+};
+
+export default TabsPrincipal;
+```
+
+## 8. Erros comuns
+
+### 8.1 Colocar `IonTabBar` fora de `IonTabs`
+
+O `IonTabBar` precisa ficar dentro de `IonTabs`.
+
+### 8.2 Esquecer o `IonRouterOutlet`
+
+Sem `IonRouterOutlet`, as rotas das tabs nao renderizam corretamente.
+
+### 8.3 Criar carrinho nesta aula
+
+Nesta aula, a tela `Pedido` e apenas estrutural.
+
+O carrinho com contexto, modal e finalizacao entra na Aula 4.
+
+## 9. Resumo
+
+Nesta aula, voce criou a navegacao principal do app.
+
+O app agora tem:
+
+- Tab `Bebes`.
+- Tab `Comes`.
+- Tab `Pedido`.
+- Tela `Pedido` inicial.
+- Redirecionamento de `/` para `/bebes`.
+
+## 10. Proximo passo
+
+Na Aula 4, vamos transformar a tela `Pedido` em um carrinho real.
+
+Vamos criar contexto, modal de adicionar produto, contador na tab `Pedido` e finalizacao do pedido.
 # Aula 3: Navegação com tabs e início do pedido
 
 ## 1. Objetivo da aula
