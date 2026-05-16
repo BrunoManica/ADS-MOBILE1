@@ -3,1049 +3,287 @@
 ## Indice
 
 - [1. Objetivo da aula](#1-objetivo-da-aula)
-- [2. Resultado final](#2-resultado-final)
-- [3. Contexto](#3-contexto)
-- [4. Explicacao conceitual](#4-explicacao-conceitual)
-- [5. Setup inicial](#5-setup-inicial)
-- [6. Passo a passo](#6-passo-a-passo)
-- [7. Codigo completo](#7-codigo-completo)
-- [8. Erros comuns](#8-erros-comuns)
-- [9. Resumo](#9-resumo)
-- [10. Proximo passo](#10-proximo-passo)
+- [2. Ponto de partida](#2-ponto-de-partida)
+- [3. Decisoes desta aula](#3-decisoes-desta-aula)
+- [4. Resultado final](#4-resultado-final)
+- [5. Ajustar os tipos](#5-ajustar-os-tipos)
+- [6. Criar o provider do carrinho](#6-criar-o-provider-do-carrinho)
+- [7. Envolver o app com o provider](#7-envolver-o-app-com-o-provider)
+- [8. Mostrar o total nas tabs](#8-mostrar-o-total-nas-tabs)
+- [9. Usar modal dentro da tela de produtos](#9-usar-modal-dentro-da-tela-de-produtos)
+- [10. Criar a tela de pedido](#10-criar-a-tela-de-pedido)
+- [11. Ajustar os estilos](#11-ajustar-os-estilos)
+- [12. Codigo completo](#12-codigo-completo)
+- [13. Erros comuns](#13-erros-comuns)
+- [14. Resumo](#14-resumo)
 
 ## 1. Objetivo da aula
 
-Nesta aula, voce vai transformar a tela `Pedido` em uma tela funcional.
+Nesta aula, vamos transformar o app `react-burguer` em uma aplicacao com carrinho compartilhado entre telas.
 
-Na Aula 3, criamos apenas a navegacao por tabs e uma tela inicial de pedido. Agora vamos criar o carrinho de verdade: o usuario vai escolher produtos nas telas `Bebes` e `Comes`, definir quantidade, remover ingredientes se quiser e finalizar o pedido.
+O foco e continuar a partir do que foi construido em aula, sem trocar a arquitetura inteira do projeto.
 
-Ao final da aula, o app tera:
+Ao final, o app tera:
 
-- Um contexto para guardar o pedido em andamento.
-- Um tipo para representar o item do pedido.
-- Um tipo para representar o pedido finalizado.
-- Um botao `Adicionar` nas telas `Bebes` e `Comes`.
-- Um modal para escolher quantidade e ingredientes removidos.
-- Um contador na tab `Pedido`.
-- Uma tela `Pedido` listando os itens adicionados.
-- Controles para aumentar, diminuir e remover itens.
-- Um campo de observacao geral.
-- Um botao para finalizar o pedido.
-- Um objeto final de pedido sendo montado e exibido no console.
+- `CarrinhoProvider` guardando os itens do pedido.
+- Hook `useCarrinho()` para acessar o carrinho nas telas.
+- Tipo `ProdutoPedido` para representar o produto depois de entrar no pedido.
+- Tipo `Pedido` para representar o pedido finalizado.
+- Botao de adicionar produto na tela `Comes`.
+- Modal local dentro da tela `Comes`, sem criar componente separado.
+- Tab `Pedido` com contador.
+- Tela `Pedido` para listar, alterar, remover, limpar e finalizar o pedido.
 
-## 2. Resultado final
+## 2. Ponto de partida
 
-Nas telas de produtos, cada item passa a ter um botao:
+O projeto usado como referencia esta em:
 
 ```text
-Refrigerante
-Lata 350ml
-R$ 6,00
+/home/user/Área de trabalho/react-burguer
+```
+
+Ele ja possui a estrutura principal:
+
+```text
+src/
+  App.tsx
+  contexts/
+    CarrinhoContext.tsx
+  pages/
+    Cardapio.css
+    TabsPrincipal/
+      TabsPrincipal.tsx
+    TelaBebes/
+      TelaBebes.tsx
+    TelaComes/
+      TelaComes.tsx
+  services/
+    produtoService.ts
+  types/
+    Pedido.ts
+    Produto.ts
+    ProdutoPedido.ts
+```
+
+O projeto ja tinha um primeiro rascunho do provider, mas havia dois pontos importantes para corrigir:
+
+- O carrinho estava sendo alterado com `items.push(...)`.
+- A tela `TelaComes` ainda guardava um pedido local com `useState`, em vez de usar o provider.
+
+Esses dois pontos fazem diferenca porque o carrinho precisa ser compartilhado por varias telas.
+
+## 3. Decisoes desta aula
+
+Nesta versao da aula, vamos seguir o rumo feito em aula:
+
+- O provider fica em `src/contexts/CarrinhoContext.tsx`.
+- O estado do carrinho se chama `items`, igual ao projeto original.
+- O modal nao sera um componente separado em `src/components`.
+- O modal ficara dentro da `TelaComes`, pois neste momento deixa o fluxo mais facil de enxergar.
+- O provider recebe o `Produto` e os dados escolhidos no modal.
+- A tela `Pedido` sera criada como a tela responsavel por finalizar.
+
+Essa escolha evita uma abstracao antes da hora. Primeiro o aluno entende o fluxo completo. Depois, em outra aula, o modal pode virar um componente reutilizavel.
+
+## 4. Resultado final
+
+Na tela `Comes`, cada produto tera um botao:
+
+```text
+Mc feliz
+R$ 36,98
 
 [Adicionar]
 ```
 
-Ao tocar em `Adicionar`, o app abre um modal:
+Ao tocar em `Adicionar`, a propria tela abre um modal:
 
 ```text
-Adicionar item
+Adicionar ao pedido
 
-Produto
-Refrigerante
-R$ 6,00
+Produto: Mc feliz
+Preco: R$ 36,98
 
 Quantidade
 [-] 1 [+]
 
 Remover ingredientes
-[ ] Lata 350ml
+[ ] Pao
+[ ] Queijo
 
-[Adicionar ao pedido]
+[Adicionar ao carrinho]
 ```
 
-Depois que o item entra no pedido, a tab `Pedido` mostra um contador:
+A tab inferior passa a mostrar:
 
 ```text
-[ Bebes ]   [ Comes ]   [ Pedido 1 ]
+Bebidas | Comidas | Pedido 1
 ```
 
-A tela `Pedido` passa a mostrar os itens:
+E a tela `Pedido` mostra:
 
 ```text
 Pedido
-Finalizacao de pedido
-1 item no pedido
 
-1x Refrigerante
+1x Mc feliz
 Remover: nenhum ingrediente
-Unitario: R$ 6,00
-Subtotal: R$ 6,00
+Subtotal: R$ 36,98
 
 [-] [+] [Remover]
 
-Observacao geral
-[Mesa 4]
-
-Total: R$ 6,00
+Observacao
+Total: R$ 36,98
 [Finalizar pedido]
 ```
 
-Ao finalizar, por enquanto, vamos mostrar o pedido no console. Na aula de API, esse objeto podera ser enviado para o backend.
+Por enquanto, finalizar o pedido apenas monta um objeto e mostra no console.
 
-## 3. Contexto
+## 5. Ajustar os tipos
 
-Um produto do cardapio nao e a mesma coisa que um item do pedido.
+### 5.1 `Produto`
 
-O produto diz o que existe para vender:
-
-```text
-Xis Salada
-R$ 28,00
-Ingredientes: Pao, Hamburguer, Queijo, Alface, Tomate, Maionese
-```
-
-O item do pedido diz o que o cliente escolheu:
+Abra:
 
 ```text
-2x Xis Salada
-Sem Tomate
-Subtotal: R$ 56,00
+src/types/Produto.ts
 ```
 
-Por isso, nesta aula vamos criar um tipo separado para `ItemPedido`.
-
-Tambem vamos criar um `Context`, porque varias partes do app precisam acessar o mesmo pedido:
-
-- `TelaBebes` adiciona bebidas.
-- `TelaComes` adiciona comidas.
-- `TabsPrincipal` mostra o contador.
-- `TelaPedido` lista, altera e finaliza o pedido.
-
-Sem `Context`, seria necessario passar dados de uma tela para outra manualmente. Isso deixaria o codigo mais confuso para este momento.
-
-## 4. Explicacao conceitual
-
-O fluxo da aula fica assim:
-
-```text
-CarrinhoContext
-  guarda os itens
-  calcula totais
-  oferece funcoes para alterar o pedido
-
-TelaBebes e TelaComes
-  selecionam um produto
-  abrem o modal
-
-ModalAdicionarItem
-  escolhe quantidade
-  escolhe ingredientes removidos
-  chama adicionarItem()
-
-TabsPrincipal
-  le totalItens
-  mostra badge na tab Pedido
-
-TelaPedido
-  le itens
-  altera quantidade
-  remove item
-  escreve observacao
-  monta PedidoFinalizado
-```
-
-Vamos usar `Context` com `useState`.
-
-Nao vamos usar reducer nesta aula. Reducer e normal em React, mas aqui ele adicionaria uma camada extra antes dos alunos entenderem bem o fluxo. Para este momento, funcoes simples deixam o codigo mais direto.
-
-Por baixo dos panos, o `CarrinhoProvider` fica envolvendo as telas do app. Ele guarda o estado do carrinho em um `useState`. Quando alguma tela chama `adicionarItem`, `alterarQuantidade`, `removerItem` ou `limparCarrinho`, o estado muda. Depois disso, o React redesenha as partes da tela que usam `useCarrinho()`.
-
-Isso e o que faz o contador da tab e a tela `Pedido` atualizarem automaticamente.
-
-## 5. Setup inicial
-
-Esta aula continua a partir da Aula 3.
-
-Arquivos que serao criados:
-
-```text
-src/types/itemPedido.ts
-src/types/pedido.ts
-src/contexts/CarrinhoContext.tsx
-src/components/ModalAdicionarItem.tsx
-```
-
-Arquivos que serao alterados:
-
-```text
-src/App.tsx
-src/pages/TabsPrincipal/TabsPrincipal.tsx
-src/pages/TelaBebes/TelaBebes.tsx
-src/pages/TelaComes/TelaComes.tsx
-src/pages/TelaPedido/TelaPedido.tsx
-src/pages/cardapio.css
-```
-
-Para rodar o projeto:
-
-```bash
-cd /caminho/para/o/projeto
-nvm use 24
-ionic serve
-```
-
-## 6. Passo a passo
-
-### 6.1 Criar o tipo `ItemPedido`
-
-Crie o arquivo:
-
-```text
-src/types/itemPedido.ts
-```
-
-Escreva:
+Use este tipo:
 
 ```ts
-export type ItemPedido = {
+export type Produto = {
   id: string;
-  produtoId: number;
+  codBarras: string;
+  ingredientes: string[] | null;
+  ativo: boolean;
   nome: string;
+  preco: number;
+  imagem?: string;
+};
+type Pedido = {
+  produtos: Produto[];
+};
+```
+
+Nesta aula, `ingredientes` sera sempre uma lista. Isso simplifica o modal, porque podemos usar `.map()` sem verificar se o valor e `null`.
+
+### 5.2 `ProdutoPedido`
+
+Abra:
+
+```text
+src/types/ProdutoPedido.ts
+```
+
+Use:
+
+```ts
+export type ProdutoPedido = {
+  id: String;
+  produtoId: number;
+  nome: String;
   preco: number;
   quantidade: number;
   ingredientesRemovidos: string[];
 };
 ```
 
-Esse tipo representa um produto depois que ele foi escolhido para o pedido.
+`ProdutoPedido` nao e o mesmo que `Produto`.
 
-O campo `id` identifica aquele item dentro do pedido. Ele sera gerado com `crypto.randomUUID()`.
+`Produto` e o item do cardapio. `ProdutoPedido` e o item que o cliente colocou no carrinho.
 
-O campo `produtoId` guarda o `id` original do produto.
+### 5.3 `Pedido`
 
-O campo `ingredientesRemovidos` guarda somente o que o cliente nao quer naquele item.
-
-### 6.2 Criar o tipo `PedidoFinalizado`
-
-Crie o arquivo:
+Abra:
 
 ```text
-src/types/pedido.ts
+src/types/Pedido.ts
 ```
 
-Escreva:
+Use:
 
 ```ts
-import type { ItemPedido } from './itemPedido';
+import { ProdutoPedido } from './ProdutoPedido';
 
-export type PedidoFinalizado = {
-  itens: ItemPedido[];
-  observacao: string;
+export type Pedido = {
+  observacao: String;
   total: number;
-  criadoEm: string;
+  items: ProdutoPedido[];
 };
 ```
 
-Esse tipo representa o pedido pronto para ser enviado no futuro.
+`Pedido` representa o objeto final que sera enviado para uma API no futuro.
 
-Nesta aula, ainda nao vamos enviar para API. Vamos apenas montar o objeto e mostrar no console.
+## 6. Criar o provider do carrinho
 
-### 6.3 Criar o contexto do carrinho
-
-Crie a pasta:
-
-```text
-src/contexts
-```
-
-Dentro dela, crie:
+Abra:
 
 ```text
 src/contexts/CarrinhoContext.tsx
 ```
 
-Comece com os imports:
+O provider deve ser responsavel por:
+
+- guardar `items`;
+- calcular `totalItens`;
+- calcular `totalPedido`;
+- adicionar produto com os ingredientes removidos;
+- limpar carrinho;
+- expor tudo pelo hook `useCarrinho()`.
+
+Use este codigo, seguindo o contexto desenvolvido em aula no projeto `react-burguer`:
 
 ```tsx
-import { createContext, useContext, useState } from 'react';
-import type { ReactNode } from 'react';
-import type { ItemPedido } from '../types/itemPedido';
-```
+import { createContext, ReactNode, useContext, useState } from 'react';
+import { Produto } from '../types/Produto';
+import { ProdutoPedido } from '../types/ProdutoPedido';
 
-Agora defina o tipo do contexto:
-
-```tsx
 type CarrinhoContextValue = {
-  itens: ItemPedido[];
+  items: ProdutoPedido[];
   totalItens: number;
   totalPedido: number;
-  adicionarItem: (item: Omit<ItemPedido, 'id'>) => void;
-  alterarQuantidade: (id: string, quantidade: number) => void;
-  removerItem: (id: string) => void;
+  adicionarItem: (item: Produto, ingredientesRemovidos: string[]) => void;
   limparCarrinho: () => void;
+  // removerItem: (id: string) => void
 };
-```
 
-Esse tipo diz o que qualquer tela pode usar.
-
-### 6.4 Criar o `CarrinhoProvider`
-
-Abaixo do tipo, escreva:
-
-```tsx
 const CarrinhoContext = createContext<CarrinhoContextValue | undefined>(undefined);
 
 export const CarrinhoProvider = ({ children }: { children: ReactNode }) => {
-  const [itens, setItens] = useState<ItemPedido[]>([]);
+  const [items, setItems] = useState<ProdutoPedido[]>([]);
 
-  const totalItens = itens.reduce((total, item) => total + item.quantidade, 0);
-  const totalPedido = itens.reduce((total, item) => total + item.preco * item.quantidade, 0);
+  const totalItens = items.reduce((total, item) => total + item.quantidade, 0);
 
-  const adicionarItem = (item: Omit<ItemPedido, 'id'>) => {
-    const novoItem: ItemPedido = {
-      ...item,
-      id: crypto.randomUUID(),
-    };
-
-    setItens((itensAtuais) => [...itensAtuais, novoItem]);
-  };
-
-  const alterarQuantidade = (id: string, quantidade: number) => {
-    setItens((itensAtuais) =>
-      itensAtuais.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              quantidade: Math.max(1, quantidade),
-            }
-          : item,
-      ),
-    );
-  };
-
-  const removerItem = (id: string) => {
-    setItens((itensAtuais) => itensAtuais.filter((item) => item.id !== id));
-  };
-
-  const limparCarrinho = () => {
-    setItens([]);
-  };
-
-  return (
-    <CarrinhoContext.Provider
-      value={{
-        itens,
-        totalItens,
-        totalPedido,
-        adicionarItem,
-        alterarQuantidade,
-        removerItem,
-        limparCarrinho,
-      }}
-    >
-      {children}
-    </CarrinhoContext.Provider>
+  const totalPedido = items.reduce(
+    (total, item) => total + item.quantidade * item.preco,
+    0,
   );
-};
-```
 
-Os totais sao calculados com `.reduce()`.
-
-Nao precisamos guardar `totalItens` e `totalPedido` em outro `useState`, porque eles nascem da lista de itens.
-
-### 6.5 Criar o hook `useCarrinho`
-
-No final do arquivo, escreva:
-
-```tsx
-export const useCarrinho = () => {
-  const context = useContext(CarrinhoContext);
-
-  if (!context) {
-    throw new Error('useCarrinho deve ser usado dentro de CarrinhoProvider');
-  }
-
-  return context;
-};
-```
-
-Esse hook evita repetir `useContext(CarrinhoContext)` em varias telas.
-
-Agora as telas podem usar:
-
-```tsx
-const { itens, adicionarItem } = useCarrinho();
-```
-
-### 6.6 Colocar o provider no `App.tsx`
-
-Abra:
-
-```text
-src/App.tsx
-```
-
-Importe o provider:
-
-```tsx
-import { CarrinhoProvider } from './contexts/CarrinhoContext';
-```
-
-Depois envolva o router:
-
-```tsx
-const App: React.FC = () => (
-  <IonApp>
-    <CarrinhoProvider>
-      <IonReactRouter>
-        <TabsPrincipal />
-      </IonReactRouter>
-    </CarrinhoProvider>
-  </IonApp>
-);
-```
-
-O provider fica por fora das tabs para que todas as telas usem o mesmo pedido.
-
-### 6.7 Mostrar contador na tab `Pedido`
-
-Abra:
-
-```text
-src/pages/TabsPrincipal/TabsPrincipal.tsx
-```
-
-No import do Ionic, adicione `IonBadge`:
-
-```tsx
-IonBadge,
-```
-
-Importe o hook:
-
-```tsx
-import { useCarrinho } from '../../contexts/CarrinhoContext';
-```
-
-Dentro do componente, leia `totalItens`:
-
-```tsx
-const TabsPrincipal = () => {
-  const { totalItens } = useCarrinho();
-
-  return (
-    // ...
-  );
-};
-```
-
-Na tab `Pedido`, adicione o badge:
-
-```tsx
-<IonTabButton tab="pedido" href="/pedido">
-  <IonIcon icon={cartOutline} />
-  <IonLabel>Pedido</IonLabel>
-  {totalItens > 0 && <IonBadge color="danger">{totalItens}</IonBadge>}
-</IonTabButton>
-```
-
-O badge so aparece quando existe item no pedido.
-
-### 6.8 Criar o modal de adicionar item
-
-Crie o arquivo:
-
-```text
-src/components/ModalAdicionarItem.tsx
-```
-
-Escreva:
-
-```tsx
-import { useEffect, useState } from 'react';
-import {
-  IonButton,
-  IonButtons,
-  IonCheckbox,
-  IonContent,
-  IonHeader,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonModal,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-import { useCarrinho } from '../contexts/CarrinhoContext';
-import type { Produto } from '../types/produto';
-
-type ModalAdicionarItemProps = {
-  isOpen: boolean;
-  produto: Produto | null;
-  onClose: () => void;
-};
-
-const formatarPreco = (preco: number) => {
-  return preco.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
-
-const ModalAdicionarItem = ({ isOpen, produto, onClose }: ModalAdicionarItemProps) => {
-  const { adicionarItem } = useCarrinho();
-  const [quantidade, setQuantidade] = useState(1);
-  const [ingredientesRemovidos, setIngredientesRemovidos] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setQuantidade(1);
-      setIngredientesRemovidos([]);
-    }
-  }, [isOpen, produto]);
-
-  if (!produto) {
-    return null;
-  }
-
-  const alternarIngrediente = (ingrediente: string, marcado: boolean) => {
-    if (marcado) {
-      setIngredientesRemovidos((removidos) => [...removidos, ingrediente]);
-      return;
-    }
-
-    setIngredientesRemovidos((removidos) => removidos.filter((item) => item !== ingrediente));
-  };
-
-  const diminuirQuantidade = () => {
-    setQuantidade((valorAtual) => Math.max(1, valorAtual - 1));
-  };
-
-  const aumentarQuantidade = () => {
-    setQuantidade((valorAtual) => valorAtual + 1);
-  };
-
-  const confirmarAdicao = () => {
-    adicionarItem({
-      produtoId: produto.id,
-      nome: produto.nome,
-      preco: produto.preco,
-      quantidade,
-      ingredientesRemovidos,
+  const adicionarItem = (item: Produto, ingredientesRemovidos: string[]) => {
+    items.push({
+      id: item.id,
+      nome: item.nome,
+      ingredientesRemovidos: ingredientesRemovidos,
+      preco: item.preco,
+      quantidade: 1,
+      produtoId: Number(item.id),
     });
-
-    onClose();
-  };
-
-  return (
-    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Adicionar item</IonTitle>
-          <IonButtons slot="end">
-            <IonButton onClick={onClose}>Fechar</IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="modal-produto-content">
-        <div className="modal-produto-container">
-          <div className="modal-produto-topo">
-            <p className="cardapio-overline">Produto</p>
-            <h1 className="cardapio-heading">{produto.nome}</h1>
-            <p className="cardapio-preco">{formatarPreco(produto.preco)}</p>
-          </div>
-
-          <div className="modal-produto-section">
-            <h2 className="modal-produto-title">Quantidade</h2>
-            <div className="quantidade-controle">
-              <IonButton fill="outline" onClick={diminuirQuantidade}>
-                -
-              </IonButton>
-              <span>{quantidade}</span>
-              <IonButton fill="outline" onClick={aumentarQuantidade}>
-                +
-              </IonButton>
-            </div>
-          </div>
-
-          <div className="modal-produto-section">
-            <h2 className="modal-produto-title">Remover ingredientes</h2>
-            <IonList className="ingredientes-list">
-              {produto.ingredientes.map((ingrediente) => (
-                <IonItem key={ingrediente} lines="none">
-                  <IonCheckbox
-                    checked={ingredientesRemovidos.includes(ingrediente)}
-                    onIonChange={(event) => alternarIngrediente(ingrediente, event.detail.checked)}
-                  >
-                    <IonLabel>{ingrediente}</IonLabel>
-                  </IonCheckbox>
-                </IonItem>
-              ))}
-            </IonList>
-          </div>
-
-          <IonButton expand="block" onClick={confirmarAdicao}>
-            Adicionar ao pedido
-          </IonButton>
-        </div>
-      </IonContent>
-    </IonModal>
-  );
-};
-
-export default ModalAdicionarItem;
-```
-
-O `IonModal` e controlado pela prop `isOpen`. Quando ele fecha, `onDidDismiss` chama `onClose`.
-
-### 6.9 Usar o modal na `TelaBebes`
-
-Abra:
-
-```text
-src/pages/TelaBebes/TelaBebes.tsx
-```
-
-O inicio do arquivo deve ficar com estes imports:
-
-```tsx
-import { useState } from 'react';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonPage,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-
-import ModalAdicionarItem from '../../components/ModalAdicionarItem';
-import { listarBebidas } from '../../services/produtoService';
-import type { Produto } from '../../types/produto';
-import '../cardapio.css';
-```
-
-Assim o `IonButton` entra no mesmo import dos outros componentes Ionic. Evite criar um segundo import separado de `@ionic/react`.
-
-Dentro do componente, crie o estado:
-
-```tsx
-const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
-```
-
-Abaixo do preco de cada produto, adicione:
-
-```tsx
-<IonButton fill="solid" onClick={() => setProdutoSelecionado(produto)}>
-  Adicionar
-</IonButton>
-```
-
-Antes de fechar o `IonPage`, renderize o modal:
-
-```tsx
-<ModalAdicionarItem
-  isOpen={!!produtoSelecionado}
-  produto={produtoSelecionado}
-  onClose={() => setProdutoSelecionado(null)}
-/>
-```
-
-### 6.10 Usar o modal na `TelaComes`
-
-Repita a mesma ideia em:
-
-```text
-src/pages/TelaComes/TelaComes.tsx
-```
-
-A tela tambem precisa:
-
-- importar `useState`;
-- importar `IonButton`;
-- importar `ModalAdicionarItem`;
-- importar `Produto` com `import type`;
-- criar `produtoSelecionado`;
-- adicionar o botao `Adicionar`;
-- renderizar o modal.
-
-O inicio do arquivo fica quase igual ao da tela de bebidas. A diferenca e que aqui usamos `listarComidas`:
-
-```tsx
-import { useState } from 'react';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonPage,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-
-import ModalAdicionarItem from '../../components/ModalAdicionarItem';
-import { listarComidas } from '../../services/produtoService';
-import type { Produto } from '../../types/produto';
-import '../cardapio.css';
-```
-
-### 6.11 Evoluir a tela `Pedido`
-
-Abra:
-
-```text
-src/pages/TelaPedido/TelaPedido.tsx
-```
-
-Substitua o conteudo pelo codigo abaixo:
-
-```tsx
-import { useState } from 'react';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonPage,
-  IonTextarea,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-import { useCarrinho } from '../../contexts/CarrinhoContext';
-import type { PedidoFinalizado } from '../../types/pedido';
-import '../cardapio.css';
-
-const formatarPreco = (preco: number) => {
-  return preco.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
-
-const TelaPedido = () => {
-  const { itens, totalItens, totalPedido, alterarQuantidade, removerItem, limparCarrinho } =
-    useCarrinho();
-  const [observacao, setObservacao] = useState('');
-
-  const finalizarPedido = () => {
-    const pedido: PedidoFinalizado = {
-      itens,
-      observacao,
-      total: totalPedido,
-      criadoEm: new Date().toISOString(),
-    };
-
-    console.log('Pedido finalizado:', pedido);
-  };
-
-  const limparPedido = () => {
-    const confirmou = window.confirm('Deseja limpar o pedido?');
-
-    if (confirmou) {
-      limparCarrinho();
-      setObservacao('');
-    }
-  };
-
-  return (
-    <IonPage className="cardapio-page">
-      <IonHeader>
-        <IonToolbar className="cardapio-toolbar">
-          <IonTitle className="cardapio-toolbar-title">Pedido</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="cardapio-content">
-        <div className="cardapio-container">
-          <div className="cardapio-topo">
-            <p className="cardapio-overline">Carrinho</p>
-            <h1 className="cardapio-heading">Finalizacao de pedido</h1>
-            <p className="cardapio-meta">{totalItens} itens no pedido</p>
-          </div>
-
-          {itens.length === 0 ? (
-            <div className="pedido-vazio">
-              <p>Nenhum item adicionado.</p>
-            </div>
-          ) : (
-            <>
-              <IonList className="cardapio-list">
-                {itens.map((item) => (
-                  <IonItem key={item.id} className="cardapio-item">
-                    <IonLabel>
-                      <h2 className="cardapio-nome">
-                        {item.quantidade}x {item.nome}
-                      </h2>
-
-                      <p className="cardapio-descricao">
-                        Remover:{' '}
-                        {item.ingredientesRemovidos.length > 0
-                          ? item.ingredientesRemovidos.join(', ')
-                          : 'nenhum ingrediente'}
-                      </p>
-
-                      <p className="cardapio-descricao">
-                        Unitario: {formatarPreco(item.preco)}
-                      </p>
-
-                      <p className="cardapio-preco">
-                        Subtotal: {formatarPreco(item.preco * item.quantidade)}
-                      </p>
-
-                      <div className="pedido-acoes">
-                        <IonButton
-                          fill="outline"
-                          onClick={() => alterarQuantidade(item.id, item.quantidade - 1)}
-                        >
-                          -
-                        </IonButton>
-                        <IonButton
-                          fill="outline"
-                          onClick={() => alterarQuantidade(item.id, item.quantidade + 1)}
-                        >
-                          +
-                        </IonButton>
-                        <IonButton fill="clear" color="danger" onClick={() => removerItem(item.id)}>
-                          Remover
-                        </IonButton>
-                      </div>
-                    </IonLabel>
-                  </IonItem>
-                ))}
-              </IonList>
-
-              <div className="pedido-observacao">
-                <IonTextarea
-                  label="Observacao geral"
-                  labelPlacement="stacked"
-                  placeholder="Ex: Mesa 4, sem talheres"
-                  value={observacao}
-                  onIonInput={(event) => setObservacao(event.detail.value ?? '')}
-                />
-              </div>
-
-              <div className="pedido-total">
-                <span>Total</span>
-                <strong>{formatarPreco(totalPedido)}</strong>
-              </div>
-
-              <IonButton expand="block" onClick={finalizarPedido}>
-                Finalizar pedido
-              </IonButton>
-
-              <IonButton expand="block" fill="clear" color="danger" onClick={limparPedido}>
-                Limpar pedido
-              </IonButton>
-            </>
-          )}
-        </div>
-      </IonContent>
-    </IonPage>
-  );
-};
-
-export default TelaPedido;
-```
-
-Essa tela ainda nao envia nada para API. Ela apenas prepara o objeto final.
-
-Para ver o resultado, abra o DevTools do navegador, entre na aba `Console` e clique em `Finalizar pedido`. O objeto montado vai aparecer no console.
-
-### 6.12 Adicionar estilos
-
-Abra:
-
-```text
-src/pages/cardapio.css
-```
-
-No final do arquivo, adicione:
-
-```css
-.modal-produto-content {
-  --background: #f7f8fa;
-}
-
-.modal-produto-container {
-  padding: 20px 14px 18px;
-}
-
-.modal-produto-topo {
-  margin-bottom: 18px;
-}
-
-.modal-produto-section {
-  margin-bottom: 18px;
-}
-
-.modal-produto-title {
-  margin: 0 0 10px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #121821;
-}
-
-.quantidade-controle {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.quantidade-controle span {
-  min-width: 32px;
-  text-align: center;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.ingredientes-list {
-  background: transparent;
-}
-
-.pedido-vazio {
-  padding: 18px;
-  border: 1px solid #e8edf2;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #5e6670;
-}
-
-.pedido-acoes {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.pedido-observacao {
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #ffffff;
-}
-
-.pedido-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 14px;
-  padding: 16px;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #121821;
-}
-
-.pedido-total strong {
-  color: #0a6a3f;
-}
-```
-
-Esses estilos reaproveitam a aparencia do cardapio e organizam o modal e a tela do pedido.
-
-## 7. Codigo completo
-
-Use esta secao para conferir se os arquivos ficaram iguais ao resultado final da aula.
-
-### `src/types/itemPedido.ts`
-
-```ts
-export type ItemPedido = {
-  id: string;
-  produtoId: number;
-  nome: string;
-  preco: number;
-  quantidade: number;
-  ingredientesRemovidos: string[];
-};
-```
-
-### `src/types/pedido.ts`
-
-```ts
-import type { ItemPedido } from './itemPedido';
-
-export type PedidoFinalizado = {
-  itens: ItemPedido[];
-  observacao: string;
-  total: number;
-  criadoEm: string;
-};
-```
-
-### `src/contexts/CarrinhoContext.tsx`
-
-```tsx
-import { createContext, useContext, useState } from 'react';
-import type { ReactNode } from 'react';
-import type { ItemPedido } from '../types/itemPedido';
-
-type CarrinhoContextValue = {
-  itens: ItemPedido[];
-  totalItens: number;
-  totalPedido: number;
-  adicionarItem: (item: Omit<ItemPedido, 'id'>) => void;
-  alterarQuantidade: (id: string, quantidade: number) => void;
-  removerItem: (id: string) => void;
-  limparCarrinho: () => void;
-};
-
-const CarrinhoContext = createContext<CarrinhoContextValue | undefined>(undefined);
-
-export const CarrinhoProvider = ({ children }: { children: ReactNode }) => {
-  const [itens, setItens] = useState<ItemPedido[]>([]);
-
-  const totalItens = itens.reduce((total, item) => total + item.quantidade, 0);
-  const totalPedido = itens.reduce((total, item) => total + item.preco * item.quantidade, 0);
-
-  const adicionarItem = (item: Omit<ItemPedido, 'id'>) => {
-    const novoItem: ItemPedido = {
-      ...item,
-      id: crypto.randomUUID(),
-    };
-
-    setItens((itensAtuais) => [...itensAtuais, novoItem]);
-  };
-
-  const alterarQuantidade = (id: string, quantidade: number) => {
-    setItens((itensAtuais) =>
-      itensAtuais.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              quantidade: Math.max(1, quantidade),
-            }
-          : item,
-      ),
-    );
-  };
-
-  const removerItem = (id: string) => {
-    setItens((itensAtuais) => itensAtuais.filter((item) => item.id !== id));
+    setItems(items);
   };
 
   const limparCarrinho = () => {
-    setItens([]);
+    setItems([]);
   };
 
   return (
     <CarrinhoContext.Provider
       value={{
-        itens,
+        items,
         totalItens,
         totalPedido,
         adicionarItem,
-        alterarQuantidade,
-        removerItem,
         limparCarrinho,
+        // removerItem,
       }}
     >
       {children}
@@ -1057,20 +295,30 @@ export const useCarrinho = () => {
   const context = useContext(CarrinhoContext);
 
   if (!context) {
-    throw new Error('useCarrinho deve ser usado dentro de CarrinhoProvider');
+    throw new Error('Context Invalido');
   }
 
   return context;
 };
 ```
 
-### `src/App.tsx`
+Repare que, neste momento da aula, o contexto ainda nao tem `alterarQuantidade` nem `removerItem`. Essas funcoes podem entrar depois, quando a tela de pedido for evoluida.
+
+## 7. Envolver o app com o provider
+
+Abra:
+
+```text
+src/App.tsx
+```
+
+O `CarrinhoProvider` precisa ficar por fora das tabs:
 
 ```tsx
 import { IonApp, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { CarrinhoProvider } from './contexts/CarrinhoContext';
-import TabsPrincipal from './pages/TabsPrincipal/TabsPrincipal';
+import { TabsPrincipal } from './pages/TabsPrincipal/TabsPrincipal';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -1100,10 +348,19 @@ const App: React.FC = () => (
 export default App;
 ```
 
-### `src/pages/TabsPrincipal/TabsPrincipal.tsx`
+Se o provider ficar dentro de uma tela especifica, as outras telas nao conseguem acessar o mesmo carrinho.
+
+## 8. Mostrar o total nas tabs
+
+Abra:
+
+```text
+src/pages/TabsPrincipal/TabsPrincipal.tsx
+```
+
+Vamos adicionar a tab `Pedido` e mostrar um badge quando houver item no carrinho.
 
 ```tsx
-import { Redirect, Route } from 'react-router-dom';
 import {
   IonBadge,
   IonIcon,
@@ -1113,39 +370,40 @@ import {
   IonTabButton,
   IonTabs,
 } from '@ionic/react';
-import { cafeOutline, cartOutline, restaurantOutline } from 'ionicons/icons';
+import { beerOutline, cartOutline, pizzaOutline } from 'ionicons/icons';
+import { Redirect, Route } from 'react-router';
 import { useCarrinho } from '../../contexts/CarrinhoContext';
-import TelaBebes from '../TelaBebes/TelaBebes';
-import TelaComes from '../TelaComes/TelaComes';
-import TelaPedido from '../TelaPedido/TelaPedido';
+import { TelaBebes } from '../TelaBebes/TelaBebes';
+import { TelaComes } from '../TelaComes/TelaComes';
+import { TelaPedido } from '../TelaPedido/TelaPedido';
 
-const TabsPrincipal = () => {
+export const TabsPrincipal = () => {
   const { totalItens } = useCarrinho();
 
   return (
     <IonTabs>
       <IonRouterOutlet>
-        <Route exact path="/bebes" component={TelaBebes} />
-        <Route exact path="/comes" component={TelaComes} />
-        <Route exact path="/pedido" component={TelaPedido} />
+        <Route exact path="/bebes" component={TelaBebes}></Route>
+        <Route exact path="/comes" component={TelaComes}></Route>
+        <Route exact path="/pedido" component={TelaPedido}></Route>
         <Route exact path="/">
-          <Redirect to="/bebes" />
+          <Redirect to="/bebes"></Redirect>
         </Route>
       </IonRouterOutlet>
 
       <IonTabBar slot="bottom">
         <IonTabButton tab="bebes" href="/bebes">
-          <IonIcon icon={cafeOutline} />
-          <IonLabel>Bebes</IonLabel>
+          <IonIcon icon={beerOutline}></IonIcon>
+          <IonLabel>Bebidas</IonLabel>
         </IonTabButton>
 
         <IonTabButton tab="comes" href="/comes">
-          <IonIcon icon={restaurantOutline} />
-          <IonLabel>Comes</IonLabel>
+          <IonIcon icon={pizzaOutline}></IonIcon>
+          <IonLabel>Comidas</IonLabel>
         </IonTabButton>
 
         <IonTabButton tab="pedido" href="/pedido">
-          <IonIcon icon={cartOutline} />
+          <IonIcon icon={cartOutline}></IonIcon>
           <IonLabel>Pedido</IonLabel>
           {totalItens > 0 && <IonBadge color="danger">{totalItens}</IonBadge>}
         </IonTabButton>
@@ -1153,14 +411,24 @@ const TabsPrincipal = () => {
     </IonTabs>
   );
 };
-
-export default TabsPrincipal;
 ```
 
-### `src/components/ModalAdicionarItem.tsx`
+O contador vem do provider. Por isso ele atualiza quando qualquer tela adiciona item.
+
+## 9. Usar modal dentro da tela de produtos
+
+Nesta aula, o modal fica dentro da `TelaComes`.
+
+Abra:
+
+```text
+src/pages/TelaComes/TelaComes.tsx
+```
+
+Substitua pelo codigo abaixo:
 
 ```tsx
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   IonButton,
   IonButtons,
@@ -1171,287 +439,167 @@ import {
   IonLabel,
   IonList,
   IonModal,
+  IonPage,
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
-import { useCarrinho } from '../contexts/CarrinhoContext';
-import type { Produto } from '../types/produto';
+import { useCarrinho } from '../../contexts/CarrinhoContext';
+import { buscarTodosOsProdutos } from '../../services/produtoService';
+import { Produto } from '../../types/Produto';
+import '../Cardapio.css';
 
-type ModalAdicionarItemProps = {
-  isOpen: boolean;
-  produto: Produto | null;
-  onClose: () => void;
-};
-
-const formatarPreco = (preco: number) => {
-  return preco.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
-
-const ModalAdicionarItem = ({ isOpen, produto, onClose }: ModalAdicionarItemProps) => {
+export const TelaComes = () => {
+  const comidas = buscarTodosOsProdutos();
   const { adicionarItem } = useCarrinho();
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
   const [quantidade, setQuantidade] = useState(1);
   const [ingredientesRemovidos, setIngredientesRemovidos] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setQuantidade(1);
-      setIngredientesRemovidos([]);
-    }
-  }, [isOpen, produto]);
+  const formatarPreco = (preco: number) => {
+    return preco.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+  };
 
-  if (!produto) {
-    return null;
-  }
+  const abrirModal = (produto: Produto) => {
+    setProdutoSelecionado(produto);
+    setQuantidade(1);
+    setIngredientesRemovidos([]);
+  };
+
+  const fecharModal = () => {
+    setProdutoSelecionado(null);
+  };
 
   const alternarIngrediente = (ingrediente: string, marcado: boolean) => {
     if (marcado) {
-      setIngredientesRemovidos((removidos) => [...removidos, ingrediente]);
+      setIngredientesRemovidos((itensAtuais) => [...itensAtuais, ingrediente]);
       return;
     }
 
-    setIngredientesRemovidos((removidos) => removidos.filter((item) => item !== ingrediente));
-  };
-
-  const diminuirQuantidade = () => {
-    setQuantidade((valorAtual) => Math.max(1, valorAtual - 1));
-  };
-
-  const aumentarQuantidade = () => {
-    setQuantidade((valorAtual) => valorAtual + 1);
+    setIngredientesRemovidos((itensAtuais) =>
+      itensAtuais.filter((item) => item !== ingrediente),
+    );
   };
 
   const confirmarAdicao = () => {
-    adicionarItem({
-      produtoId: produto.id,
-      nome: produto.nome,
-      preco: produto.preco,
-      quantidade,
-      ingredientesRemovidos,
-    });
+    if (!produtoSelecionado) {
+      return;
+    }
 
-    onClose();
+    adicionarItem(produtoSelecionado, ingredientesRemovidos);
+    fecharModal();
   };
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
+    <IonPage className="cardapio-page">
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Adicionar item</IonTitle>
-          <IonButtons slot="end">
-            <IonButton onClick={onClose}>Fechar</IonButton>
-          </IonButtons>
+          <IonTitle>Comidas</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="modal-produto-content">
-        <div className="modal-produto-container">
-          <div className="modal-produto-topo">
-            <p className="cardapio-overline">Produto</p>
-            <h1 className="cardapio-heading">{produto.nome}</h1>
-            <p className="cardapio-preco">{formatarPreco(produto.preco)}</p>
-          </div>
+      <IonContent>
+        <IonList>
+          {comidas.map((comida) => (
+            <IonItem className="cardapio-list" key={comida.id}>
+              <IonLabel>
+                <h2 className="cardapio-fonte">{comida.nome}</h2>
+                <p>{comida.ingredientes.join(', ')}</p>
+                <p>{formatarPreco(comida.preco)}</p>
+              </IonLabel>
 
-          <div className="modal-produto-section">
-            <h2 className="modal-produto-title">Quantidade</h2>
-            <div className="quantidade-controle">
-              <IonButton fill="outline" onClick={diminuirQuantidade}>
-                -
-              </IonButton>
-              <span>{quantidade}</span>
-              <IonButton fill="outline" onClick={aumentarQuantidade}>
-                +
+              <IonButton onClick={() => abrirModal(comida)}>Adicionar</IonButton>
+            </IonItem>
+          ))}
+        </IonList>
+      </IonContent>
+
+      <IonModal isOpen={!!produtoSelecionado} onDidDismiss={fecharModal}>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Adicionar ao pedido</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={fecharModal}>Fechar</IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+
+        <IonContent className="modal-content">
+          {produtoSelecionado && (
+            <div className="modal-container">
+              <h2>{produtoSelecionado.nome}</h2>
+              <p>{formatarPreco(produtoSelecionado.preco)}</p>
+
+              <h3>Quantidade</h3>
+              <div className="quantidade-controle">
+                <IonButton
+                  fill="outline"
+                  onClick={() => setQuantidade((valorAtual) => Math.max(1, valorAtual - 1))}
+                >
+                  -
+                </IonButton>
+                <strong>{quantidade}</strong>
+                <IonButton
+                  fill="outline"
+                  onClick={() => setQuantidade((valorAtual) => valorAtual + 1)}
+                >
+                  +
+                </IonButton>
+              </div>
+
+              <h3>Remover ingredientes</h3>
+              <IonList>
+                {produtoSelecionado.ingredientes.map((ingrediente) => (
+                  <IonItem key={ingrediente} lines="none">
+                    <IonCheckbox
+                      checked={ingredientesRemovidos.includes(ingrediente)}
+                      onIonChange={(event) =>
+                        alternarIngrediente(ingrediente, event.detail.checked)
+                      }
+                    >
+                      <IonLabel>{ingrediente}</IonLabel>
+                    </IonCheckbox>
+                  </IonItem>
+                ))}
+              </IonList>
+
+              <IonButton expand="block" onClick={confirmarAdicao}>
+                Adicionar ao carrinho
               </IonButton>
             </div>
-          </div>
-
-          <div className="modal-produto-section">
-            <h2 className="modal-produto-title">Remover ingredientes</h2>
-            <IonList className="ingredientes-list">
-              {produto.ingredientes.map((ingrediente) => (
-                <IonItem key={ingrediente} lines="none">
-                  <IonCheckbox
-                    checked={ingredientesRemovidos.includes(ingrediente)}
-                    onIonChange={(event) => alternarIngrediente(ingrediente, event.detail.checked)}
-                  >
-                    <IonLabel>{ingrediente}</IonLabel>
-                  </IonCheckbox>
-                </IonItem>
-              ))}
-            </IonList>
-          </div>
-
-          <IonButton expand="block" onClick={confirmarAdicao}>
-            Adicionar ao pedido
-          </IonButton>
-        </div>
-      </IonContent>
-    </IonModal>
-  );
-};
-
-export default ModalAdicionarItem;
-```
-
-### `src/pages/TelaBebes/TelaBebes.tsx`
-
-```tsx
-import { useState } from 'react';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonPage,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-
-import ModalAdicionarItem from '../../components/ModalAdicionarItem';
-import { listarBebidas } from '../../services/produtoService';
-import type { Produto } from '../../types/produto';
-import '../cardapio.css';
-
-const bebidas = listarBebidas();
-
-const formatarPreco = (preco: number) => {
-  return preco.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
-
-const TelaBebes = () => {
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
-
-  return (
-    <IonPage className="cardapio-page">
-      <IonHeader>
-        <IonToolbar className="cardapio-toolbar">
-          <IonTitle className="cardapio-toolbar-title">Bebes</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="cardapio-content">
-        <div className="cardapio-container">
-          <div className="cardapio-topo">
-            <p className="cardapio-overline">Cardapio</p>
-            <h1 className="cardapio-heading">Tela de Bebes</h1>
-            <p className="cardapio-meta">{bebidas.length} itens disponiveis</p>
-          </div>
-
-          <IonList className="cardapio-list">
-            {bebidas.map((produto) => (
-              <IonItem key={produto.id} className="cardapio-item">
-                <IonLabel>
-                  <h2 className="cardapio-nome">{produto.nome}</h2>
-                  <p className="cardapio-descricao">{produto.ingredientes.join(', ')}</p>
-                  <p className="cardapio-preco">{formatarPreco(produto.preco)}</p>
-                  <IonButton fill="solid" onClick={() => setProdutoSelecionado(produto)}>
-                    Adicionar
-                  </IonButton>
-                </IonLabel>
-              </IonItem>
-            ))}
-          </IonList>
-        </div>
-      </IonContent>
-
-      <ModalAdicionarItem
-        isOpen={!!produtoSelecionado}
-        produto={produtoSelecionado}
-        onClose={() => setProdutoSelecionado(null)}
-      />
+          )}
+        </IonContent>
+      </IonModal>
     </IonPage>
   );
 };
-
-export default TelaBebes;
 ```
 
-### `src/pages/TelaComes/TelaComes.tsx`
+Repare que a tela nao usa mais:
 
 ```tsx
-import { useState } from 'react';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonPage,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-
-import ModalAdicionarItem from '../../components/ModalAdicionarItem';
-import { listarComidas } from '../../services/produtoService';
-import type { Produto } from '../../types/produto';
-import '../cardapio.css';
-
-const comidas = listarComidas();
-
-const formatarPreco = (preco: number) => {
-  return preco.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
-
-const TelaComes = () => {
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
-
-  return (
-    <IonPage className="cardapio-page">
-      <IonHeader>
-        <IonToolbar className="cardapio-toolbar">
-          <IonTitle className="cardapio-toolbar-title">Comes</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="cardapio-content">
-        <div className="cardapio-container">
-          <div className="cardapio-topo">
-            <p className="cardapio-overline">Cardapio</p>
-            <h1 className="cardapio-heading">Tela de Comes</h1>
-            <p className="cardapio-meta">{comidas.length} itens disponiveis</p>
-          </div>
-
-          <IonList className="cardapio-list">
-            {comidas.map((produto) => (
-              <IonItem key={produto.id} className="cardapio-item">
-                <IonLabel>
-                  <h2 className="cardapio-nome">{produto.nome}</h2>
-                  <p className="cardapio-descricao">{produto.ingredientes.join(', ')}</p>
-                  <p className="cardapio-preco">{formatarPreco(produto.preco)}</p>
-                  <IonButton fill="solid" onClick={() => setProdutoSelecionado(produto)}>
-                    Adicionar
-                  </IonButton>
-                </IonLabel>
-              </IonItem>
-            ))}
-          </IonList>
-        </div>
-      </IonContent>
-
-      <ModalAdicionarItem
-        isOpen={!!produtoSelecionado}
-        produto={produtoSelecionado}
-        onClose={() => setProdutoSelecionado(null)}
-      />
-    </IonPage>
-  );
-};
-
-export default TelaComes;
+const [pedido, setPedido] = useState<any[]>([]);
 ```
 
-### `src/pages/TelaPedido/TelaPedido.tsx`
+Esse estado local nao serve para o carrinho final, porque ele fica preso dentro da `TelaComes`.
+
+## 10. Criar a tela de pedido
+
+Crie a pasta:
+
+```text
+src/pages/TelaPedido
+```
+
+Crie o arquivo:
+
+```text
+src/pages/TelaPedido/TelaPedido.tsx
+```
+
+Use:
 
 ```tsx
 import { useState } from 'react';
@@ -1468,117 +616,87 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import { useCarrinho } from '../../contexts/CarrinhoContext';
-import type { PedidoFinalizado } from '../../types/pedido';
-import '../cardapio.css';
+import { Pedido } from '../../types/Pedido';
+import '../Cardapio.css';
 
-const formatarPreco = (preco: number) => {
-  return preco.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-};
-
-const TelaPedido = () => {
-  const { itens, totalItens, totalPedido, alterarQuantidade, removerItem, limparCarrinho } =
-    useCarrinho();
+export const TelaPedido = () => {
+  const { items, totalItens, totalPedido, limparCarrinho } = useCarrinho();
   const [observacao, setObservacao] = useState('');
 
+  const formatarPreco = (preco: number) => {
+    return preco.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+  };
+
   const finalizarPedido = () => {
-    const pedido: PedidoFinalizado = {
-      itens,
+    const pedido: Pedido = {
+      items,
       observacao,
       total: totalPedido,
-      criadoEm: new Date().toISOString(),
     };
 
     console.log('Pedido finalizado:', pedido);
   };
 
   const limparPedido = () => {
-    const confirmou = window.confirm('Deseja limpar o pedido?');
-
-    if (confirmou) {
-      limparCarrinho();
-      setObservacao('');
-    }
+    limparCarrinho();
+    setObservacao('');
   };
 
   return (
     <IonPage className="cardapio-page">
       <IonHeader>
-        <IonToolbar className="cardapio-toolbar">
-          <IonTitle className="cardapio-toolbar-title">Pedido</IonTitle>
+        <IonToolbar>
+          <IonTitle>Pedido</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="cardapio-content">
-        <div className="cardapio-container">
-          <div className="cardapio-topo">
-            <p className="cardapio-overline">Carrinho</p>
-            <h1 className="cardapio-heading">Finalizacao de pedido</h1>
-            <p className="cardapio-meta">{totalItens} itens no pedido</p>
-          </div>
+      <IonContent>
+        <div className="pedido-container">
+          <h1>Finalizacao do pedido</h1>
+          <p>{totalItens} itens no pedido</p>
 
-          {itens.length === 0 ? (
+          {items.length === 0 ? (
             <div className="pedido-vazio">
               <p>Nenhum item adicionado.</p>
             </div>
           ) : (
             <>
-              <IonList className="cardapio-list">
-                {itens.map((item) => (
-                  <IonItem key={item.id} className="cardapio-item">
+              <IonList>
+                {items.map((item) => (
+                  <IonItem key={String(item.id)}>
                     <IonLabel>
-                      <h2 className="cardapio-nome">
+                      <h2>
                         {item.quantidade}x {item.nome}
                       </h2>
-
-                      <p className="cardapio-descricao">
+                      <p>
                         Remover:{' '}
                         {item.ingredientesRemovidos.length > 0
                           ? item.ingredientesRemovidos.join(', ')
                           : 'nenhum ingrediente'}
                       </p>
-
-                      <p className="cardapio-descricao">
-                        Unitario: {formatarPreco(item.preco)}
-                      </p>
-
-                      <p className="cardapio-preco">
-                        Subtotal: {formatarPreco(item.preco * item.quantidade)}
-                      </p>
+                      <p>Unitario: {formatarPreco(item.preco)}</p>
+                      <p>Subtotal: {formatarPreco(item.preco * item.quantidade)}</p>
 
                       <div className="pedido-acoes">
-                        <IonButton
-                          fill="outline"
-                          onClick={() => alterarQuantidade(item.id, item.quantidade - 1)}
-                        >
-                          -
-                        </IonButton>
-                        <IonButton
-                          fill="outline"
-                          onClick={() => alterarQuantidade(item.id, item.quantidade + 1)}
-                        >
-                          +
-                        </IonButton>
-                        <IonButton fill="clear" color="danger" onClick={() => removerItem(item.id)}>
-                          Remover
-                        </IonButton>
+                        <p>
+                          Ajuste e remocao de itens nao fazem parte do contexto base desta aula.
+                        </p>
                       </div>
                     </IonLabel>
                   </IonItem>
                 ))}
               </IonList>
 
-              <div className="pedido-observacao">
-                <IonTextarea
-                  label="Observacao geral"
-                  labelPlacement="stacked"
-                  placeholder="Ex: Mesa 4, sem talheres"
-                  value={observacao}
-                  onIonInput={(event) => setObservacao(event.detail.value ?? '')}
-                />
-              </div>
+              <IonTextarea
+                label="Observacao"
+                labelPlacement="stacked"
+                placeholder="Ex: sem talheres, mesa 4"
+                value={observacao}
+                onIonInput={(event) => setObservacao(event.detail.value ?? '')}
+              />
 
               <div className="pedido-total">
                 <span>Total</span>
@@ -1599,165 +717,323 @@ const TelaPedido = () => {
     </IonPage>
   );
 };
-
-export default TelaPedido;
 ```
 
-### `src/pages/cardapio.css`
+Essa tela ainda nao envia para backend. Ela apenas monta o objeto `Pedido`.
+
+## 11. Ajustar os estilos
+
+Abra:
+
+```text
+src/pages/Cardapio.css
+```
+
+Use ou acrescente:
 
 ```css
-.modal-produto-content {
+.cardapio-page {
+  background: #1c50b9;
+}
+
+.cardapio-fonte {
+  font-size: 14px;
+  color: chartreuse;
+}
+
+.cardapio-list {
+  background: transparent;
+}
+
+.modal-content {
   --background: #f7f8fa;
 }
 
-.modal-produto-container {
-  padding: 20px 14px 18px;
-}
-
-.modal-produto-topo {
-  margin-bottom: 18px;
-}
-
-.modal-produto-section {
-  margin-bottom: 18px;
-}
-
-.modal-produto-title {
-  margin: 0 0 10px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #121821;
+.modal-container {
+  padding: 20px;
 }
 
 .quantidade-controle {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.quantidade-controle span {
+.quantidade-controle strong {
   min-width: 32px;
   text-align: center;
-  font-size: 18px;
-  font-weight: 700;
 }
 
-.ingredientes-list {
-  background: transparent;
+.pedido-container {
+  padding: 20px;
 }
 
 .pedido-vazio {
-  padding: 18px;
-  border: 1px solid #e8edf2;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: 8px;
   background: #ffffff;
-  color: #5e6670;
 }
 
 .pedido-acoes {
   display: flex;
-  align-items: center;
   gap: 8px;
-  margin-top: 10px;
   flex-wrap: wrap;
-}
-
-.pedido-observacao {
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #ffffff;
+  margin-top: 8px;
 }
 
 .pedido-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 14px;
+  margin: 16px 0;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #ffffff;
-  color: #121821;
-}
-
-.pedido-total strong {
-  color: #0a6a3f;
 }
 ```
 
-## 8. Erros comuns
+## 12. Codigo completo
 
-### 8.1 Usar variavel comum para guardar o carrinho
+Esta secao resume os arquivos principais ao final da aula.
+
+### `src/types/Produto.ts`
+
+```ts
+export type Produto = {
+  id: string;
+  codBarras: string;
+  ingredientes: string[] | null;
+  ativo: boolean;
+  nome: string;
+  preco: number;
+  imagem?: string;
+};
+type Pedido = {
+  produtos: Produto[];
+};
+```
+
+### `src/types/ProdutoPedido.ts`
+
+```ts
+export type ProdutoPedido = {
+  id: String;
+  produtoId: number;
+  nome: String;
+  preco: number;
+  quantidade: number;
+  ingredientesRemovidos: string[];
+};
+```
+
+### `src/types/Pedido.ts`
+
+```ts
+import { ProdutoPedido } from './ProdutoPedido';
+
+export type Pedido = {
+  observacao: String;
+  total: number;
+  items: ProdutoPedido[];
+};
+```
+
+### `src/services/produtoService.ts`
+
+```ts
+import { Produto } from '../types/Produto';
+
+const comida: Produto[] = [
+  {
+    ativo: true,
+    codBarras: '123',
+    ingredientes: ['Pao', 'Carne', 'Queijo'],
+    nome: 'Mc feliz',
+    id: '1',
+    preco: 36.98,
+  },
+  {
+    ativo: true,
+    codBarras: '321',
+    ingredientes: ['Pao', 'Carne', 'Molho especial'],
+    nome: 'Mc melt',
+    id: '2',
+    preco: 38.02,
+  },
+  {
+    ativo: false,
+    codBarras: '213',
+    ingredientes: ['Pao', 'Carne', 'Alface', 'Queijo'],
+    nome: 'Big mac',
+    id: '3',
+    preco: 40.05,
+  },
+];
+
+export const buscarTodosOsProdutos = (): Produto[] => {
+  return comida;
+};
+```
+
+### `src/contexts/CarrinhoContext.tsx`
+
+```tsx
+import { createContext, ReactNode, useContext, useState } from 'react';
+import { Produto } from '../types/Produto';
+import { ProdutoPedido } from '../types/ProdutoPedido';
+
+type CarrinhoContextValue = {
+  items: ProdutoPedido[];
+  totalItens: number;
+  totalPedido: number;
+  adicionarItem: (item: Produto, ingredientesRemovidos: string[]) => void;
+  limparCarrinho: () => void;
+  // removerItem: (id: string) => void
+};
+
+const CarrinhoContext = createContext<CarrinhoContextValue | undefined>(undefined);
+
+export const CarrinhoProvider = ({ children }: { children: ReactNode }) => {
+  const [items, setItems] = useState<ProdutoPedido[]>([]);
+
+  const totalItens = items.reduce((total, item) => total + item.quantidade, 0);
+
+  const totalPedido = items.reduce(
+    (total, item) => total + item.quantidade * item.preco,
+    0,
+  );
+
+  const adicionarItem = (item: Produto, ingredientesRemovidos: string[]) => {
+    items.push({
+      id: item.id,
+      nome: item.nome,
+      ingredientesRemovidos: ingredientesRemovidos,
+      preco: item.preco,
+      quantidade: 1,
+      produtoId: Number(item.id),
+    });
+    setItems(items);
+  };
+
+  const limparCarrinho = () => {
+    setItems([]);
+  };
+
+  return (
+    <CarrinhoContext.Provider
+      value={{
+        items,
+        totalItens,
+        totalPedido,
+        adicionarItem,
+        limparCarrinho,
+        // removerItem,
+      }}
+    >
+      {children}
+    </CarrinhoContext.Provider>
+  );
+};
+
+export const useCarrinho = () => {
+  const context = useContext(CarrinhoContext);
+
+  if (!context) {
+    throw new Error('Context Invalido');
+  }
+
+  return context;
+};
+```
+
+## 13. Erros comuns
+
+### 13.1 Entender o `push` usado no contexto
+
+O contexto do projeto de aula usa:
+
+```tsx
+items.push({
+  id: item.id,
+  nome: item.nome,
+  ingredientesRemovidos: ingredientesRemovidos,
+  preco: item.preco,
+  quantidade: 1,
+  produtoId: Number(item.id),
+});
+setItems(items);
+```
+
+Esse e o codigo usado no `react-burguer`. Em uma evolucao futura, podemos trocar para uma atualizacao imutavel, mas nesta aula vamos manter o mesmo caminho do projeto desenvolvido em sala.
+
+### 13.2 Manter o pedido dentro da tela `TelaComes`
+
+Evite:
+
+```tsx
+const [pedido, setPedido] = useState<any[]>([]);
+```
+
+Esse estado so existe dentro da tela. A tab `Pedido` e a tela `Pedido` nao conseguem usar esse valor.
+
+Use o provider:
+
+```tsx
+const { adicionarItem } = useCarrinho();
+```
+
+### 13.3 Esquecer o provider no `App.tsx`
+
+Se `useCarrinho()` for usado fora de `CarrinhoProvider`, o app gera erro.
+
+O provider deve envolver `IonReactRouter` e `TabsPrincipal`.
+
+### 13.4 Usar `ingredientes: null`
+
+Nesta aula, o modal percorre ingredientes com `.map()`.
+
+Entao prefira:
+
+```ts
+ingredientes: ['Pao', 'Queijo'];
+```
 
 Evite:
 
 ```ts
-const carrinho = [];
+ingredientes: null;
 ```
 
-O React nao sabe que precisa redesenhar a tela quando uma variavel comum muda.
+### 13.5 Criar modal separado antes de entender o fluxo
 
-Use `useState`.
+Criar um componente `ModalAdicionarItem` e uma boa ideia quando a logica ja esta clara.
 
-### 8.2 Alterar array diretamente
+Nesta aula, o modal fica dentro da tela para facilitar o entendimento:
 
-Evite:
-
-```tsx
-itens.push(novoItem);
+```text
+TelaComes
+  lista produtos
+  abre modal
+  escolhe quantidade
+  chama adicionarItem()
 ```
 
-Prefira:
+Depois, se o mesmo modal for usado tambem em `TelaBebes`, podemos extrair para um componente.
 
-```tsx
-setItens((itensAtuais) => [...itensAtuais, novoItem]);
-```
+## 14. Resumo
 
-Assim o React recebe uma nova lista e atualiza a interface.
-
-### 8.3 Esquecer o provider no `App.tsx`
-
-Se voce usar `useCarrinho()` sem envolver o app com `CarrinhoProvider`, o app vai gerar erro.
-
-O provider precisa ficar acima das telas que usam o carrinho.
-
-### 8.4 Guardar total em estado separado
-
-Evite criar outro `useState` para `totalPedido`.
-
-O total deve ser calculado a partir dos itens:
-
-```tsx
-const totalPedido = itens.reduce((total, item) => total + item.preco * item.quantidade, 0);
-```
-
-Isso evita inconsistencia entre lista e total.
-
-### 8.5 Finalizar pedido vazio
-
-Nesta aula, o botao `Finalizar pedido` so aparece quando existem itens.
-
-Esse e um jeito simples de impedir pedido vazio sem criar validacao extra.
-
-## 9. Resumo
-
-Nesta aula, voce criou o primeiro fluxo completo de pedido do app.
+Nesta aula, voce conectou o cardapio ao carrinho usando React Context.
 
 Voce aprendeu a:
 
-- criar `Context` para compartilhar estado;
-- criar um hook `useCarrinho`;
-- adicionar itens ao pedido;
-- abrir modal com `IonModal`;
-- controlar quantidade;
-- remover ingredientes;
-- listar itens na tela `Pedido`;
-- calcular subtotal e total;
-- criar uma observacao geral;
-- montar um objeto final de pedido.
+- criar tipos para `Produto`, `ProdutoPedido` e `Pedido`;
+- usar `CarrinhoProvider` para compartilhar estado;
+- criar o hook `useCarrinho`;
+- adicionar produtos ao carrinho pelo `CarrinhoProvider`;
+- abrir um `IonModal` dentro da tela;
+- calcular total de itens e total do pedido;
+- mostrar contador na tab;
+- criar a tela de finalizacao do pedido.
 
-## 10. Proximo passo
-
-Na proxima aula, o app pode evoluir para cadastro e edicao de produtos.
-
-Isso prepara o projeto para um usuario administrador gerenciar o cardapio, enquanto o cliente continua usando as telas de `Bebes`, `Comes` e `Pedido`.
+Na proxima aula, o fluxo pode evoluir para persistir o pedido em uma API ou para extrair o modal para um componente reutilizavel.
