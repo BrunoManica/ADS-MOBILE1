@@ -25,3 +25,7 @@ Siga as aulas em ordem. Cada uma adiciona uma parte funcional ao projeto e prepa
 ### Aula 4
 
 - [Carrinho e finalização do pedido](aula4/carrinho-e-finalizacao-do-pedido.md)
+
+### Aula 5
+
+- [Cadastrando um novo produto](aula5/criacao-e-edicao-de-produtos.md)
