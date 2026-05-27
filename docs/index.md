@@ -29,3 +29,8 @@ Siga as aulas em ordem. Cada uma adiciona uma parte funcional ao projeto e prepa
 ### Aula 5
 
 - [Cadastrando um novo produto](aula5/criacao-e-edicao-de-produtos.md)
+
+### Aula 6
+
+- [Edição de produtos](aula6/edicao-de-produtos.md)
+

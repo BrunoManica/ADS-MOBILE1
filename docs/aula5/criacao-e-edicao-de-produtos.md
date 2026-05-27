@@ -868,6 +868,6 @@ input
 
 Na próxima aula, podemos evoluir com calma.
 
-Um bom próximo passo é editar um produto existente.
+A Aula 6 será sobre edição de produtos.
 
 Mas agora que o cadastro simples já existe, editar fica mais fácil de entender, porque reaproveita a mesma ideia do formulário.
