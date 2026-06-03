@@ -4,15 +4,15 @@
 
 Nesta aula, você vai evoluir o formulário da Aula 5 para editar um produto existente.
 
-Na aula anterior, o app aprendeu a cadastrar um novo produto. Agora vamos usar quase a mesma tela para alterar nome, ingredientes, preço e código de barras de um produto que já está na lista.
+Na aula anterior, o app aprendeu a cadastrar um novo produto. Agora vamos reaproveitar quase a mesma tela para alterar nome, ingredientes, preço e código de barras de um produto que já está na lista.
 
 Ao final da aula, o app terá:
 
-- Um botão `Editar` em cada produto da tela `Comes`.
+- Um botão `Editar` em cada produto da tela `Comidas`.
 - Uma rota de edição com `id` do produto.
 - O formulário carregando os dados do produto escolhido.
 - Uma função no service para buscar produto por `id`.
-- Uma função no service para salvar as alterações.
+- Uma função no service para alterar o produto.
 - A lista atualizada depois que o aluno salvar.
 
 Vamos fazer só edição de produto.
@@ -23,12 +23,12 @@ Comunicação com API fica para a Aula 8.
 
 ## 2. Resultado final
 
-Na tela `Comes`, cada produto terá um botão de edição:
+Na tela `Comidas`, cada produto terá um botão de edição:
 
 ```text
-Comes
+Comidas
 
-[Novo produto]
+[Adicionar NOVO produto]
 
 Mc feliz
 Pao, Carne, Queijo
@@ -37,10 +37,10 @@ R$ 36,98
 [Adicionar] [Editar]
 ```
 
-Ao tocar em `Editar`, o app abre a tela do formulário já preenchida:
+Ao tocar em `Editar`, o app abre a tela do formulário com os dados preenchidos:
 
 ```text
-Editar produto
+Novo Produto
 
 Nome
 [Mc feliz________]
@@ -51,13 +51,13 @@ Ingredientes
 Preco
 [36.98__________]
 
-Codigo de barras
+Cod Barras
 [123____________]
 
-[Salvar alterações]
+[salvar produto]
 ```
 
-Depois de salvar, o app volta para `Comes` e mostra o produto com os dados atualizados.
+Depois de salvar, o app volta para `Comidas` e mostra o produto com os dados atualizados.
 
 ## 3. Contexto
 
@@ -80,7 +80,7 @@ id vem da rota
   service encontra o Produto
   campos recebem os dados atuais
   aluno altera os campos
-  service atualiza o Produto
+  service altera o Produto
   lista mostra os dados novos
 ```
 
@@ -100,10 +100,10 @@ Esse `1` é o `id` do produto.
 
 Uma rota pode carregar informação.
 
-Na Aula 5, a rota era fixa:
+Na Aula 5, a rota de cadastro era:
 
 ```text
-/produtos/novo
+/produto-novo
 ```
 
 Ela sempre abria um formulário vazio.
@@ -133,7 +133,7 @@ Dentro do React, pegamos esse valor com `useParams`.
 Exemplo:
 
 ```tsx
-const { id } = useParams<{ id: string }>();
+const { id } = useParams<{ id?: string }>();
 ```
 
 Se a URL for:
@@ -166,13 +166,13 @@ src/pages/TabsPrincipal/TabsPrincipal.tsx
 Para rodar:
 
 ```bash
-cd /caminho/para/a/pasta-do-projeto
+cd /caminho/para/react-burguer
 ```
 
 Depois:
 
 ```bash
-ionic serve
+npm run dev
 ```
 
 ## 6. Passo a passo
@@ -185,83 +185,174 @@ Abra:
 src/services/produtoService.ts
 ```
 
+No topo do arquivo do projeto pode aparecer este import:
+
+```ts
+import { map } from 'ionicons/icons';
+```
+
+Ele não será usado nesta aula.
+
+Se ele ficar no arquivo, o app continua funcionando. Se quiser limpar, pode remover.
+
 Na Aula 5, o service já tinha:
 
-- `buscarComidas`;
-- `buscarBebidas`;
+- `buscarTodosOsProdutos`;
 - `cadastrarProduto`.
 
 Agora vamos adicionar mais duas funções:
 
 - `buscarProdutoPorId`;
-- `editarProduto`.
+- `alterarProduto`.
 
-### 6.2 Criar a função `buscarProdutoPorId`
+Também vamos deixar a lista como `let`, porque a função `alterarProduto` vai recriar a lista com `map`.
+
+Troque:
+
+```ts
+const comida: Produto[] = [
+```
+
+por:
+
+```ts
+let comidas: Produto[] = [
+```
+
+Depois disso, troque os outros usos do array `comida` por `comidas` dentro do service.
+
+O parâmetro usado dentro do `map` pode continuar se chamando `comida`:
+
+```ts
+comidas = comidas.map((comida) => {
+```
+
+E ajuste a busca:
+
+```ts
+export const buscarTodosOsProdutos = (): Produto[] => {
+  return comidas;
+};
+```
+
+### 6.2 Ajustar a geração de `id`
+
+Na Aula 5, o cadastro gerava o `id` com a lista `comida`:
+
+```ts
+let id = Math.max(...comida.map(c => Number(c.id)));
+id = id + 1;
+```
+
+Agora, como a lista se chama `comidas`, ajuste para:
+
+```ts
+let id = Math.max(...comidas.map(c => Number(c.id)));
+id = id + 1;
+```
+
+Na criação do produto, salve o `id` como texto:
+
+```ts
+id: id.toString(),
+```
+
+Isso evita repetir o mesmo `id` de um produto que já existe.
+
+A função `cadastrarProduto` fica assim depois desse ajuste:
+
+```ts
+export const cadastrarProduto = (
+  nome: string,
+  ingredientes: string,
+  preco: string,
+  codBarras: string,
+) => {
+  let id = Math.max(...comidas.map(c => Number(c.id)));
+  id = id + 1;
+
+  const precoTratado = Number(preco.replace('R$', '').replace(',', '.'));
+  const novoProduto = {
+    nome,
+    ingredientes: ingredientes.split(','),
+    preco: precoTratado,
+    codBarras,
+    id: id.toString(),
+    ativo: true,
+  };
+
+  comidas.push(novoProduto);
+};
+```
+
+### 6.3 Criar a função `buscarProdutoPorId`
 
 Ainda no `produtoService.ts`, adicione:
 
 ```ts
-export const buscarProdutoPorId = (id: string): Produto | undefined => {
-  const todosProdutos = [...comidas, ...bebidas];
+export const buscarProdutoPorId = (id: string): Produto | null => {
+  const todasAsComidas = comidas;
 
-  return todosProdutos.find((produto) => produto.id === id);
+  const produtoEncontrado = todasAsComidas.find((comida) => comida.id == id);
+
+  if (!produtoEncontrado) return null;
+
+  return produtoEncontrado;
 };
 ```
 
 Aqui fazemos três coisas:
 
-1. Juntamos comidas e bebidas em uma lista só.
+1. Pegamos a lista de comidas.
 2. Procuramos o produto com o mesmo `id`.
-3. Retornamos o produto encontrado.
+3. Retornamos o produto encontrado ou `null`.
 
 Essa parte:
 
 ```ts
-const todosProdutos = [...comidas, ...bebidas];
-```
-
-cria uma nova lista com os itens de `comidas` e `bebidas`.
-
-Essa parte:
-
-```ts
-produto.id === id
+comida.id == id
 ```
 
 é a comparação.
 
 Se o produto tem o mesmo `id` que veio da rota, ele é o produto que queremos editar.
 
-### 6.3 Criar a função `editarProduto`
+### 6.4 Criar a função `alterarProduto`
 
 Agora adicione:
 
 ```ts
-export const editarProduto = (
+export const alterarProduto = (
   id: string,
   nome: string,
   ingredientes: string,
-  preco: number,
+  preco: string,
   codBarras: string,
 ) => {
   const produto = buscarProdutoPorId(id);
-
   if (!produto) {
     return;
   }
 
-  produto.nome = nome;
-  produto.ingredientes = [ingredientes];
-  produto.preco = preco;
-  produto.codBarras = codBarras;
+  comidas = comidas.map((comida) => {
+    if (comida.id == id) {
+      const precoTratado = Number(preco.replace('R$', '').replace(',', '.'));
+      comida.id = id;
+      comida.nome = nome;
+      comida.ingredientes = ingredientes.split(',');
+      comida.preco = precoTratado;
+      comida.codBarras = codBarras;
+    }
+    return comida;
+  });
 };
 ```
 
 Essa função recebe os dados do formulário e altera o produto encontrado.
 
-Nesta aula, vamos atualizar o objeto direto.
+O `map` percorre a lista. Quando encontra o produto com o mesmo `id`, troca os campos.
 
-Ainda não vamos trabalhar com API, banco de dados ou atualização imutável.
+Nesta aula, ainda não vamos trabalhar com API ou banco de dados.
 
 O foco é entender o fluxo:
 
@@ -271,7 +362,7 @@ achar produto
   voltar para a lista
 ```
 
-### 6.4 Registrar a rota de edição
+### 6.5 Registrar a rota de edição
 
 Abra:
 
@@ -279,16 +370,22 @@ Abra:
 src/pages/TabsPrincipal/TabsPrincipal.tsx
 ```
 
+Confira se o arquivo já importa o formulário:
+
+```tsx
+import { TelaProdutoForm } from '../TelaProdutoForm/TelaProdutoForm';
+```
+
 Na Aula 5, você adicionou esta rota:
 
 ```tsx
-<Route exact path="/produtos/novo" component={TelaProdutoForm} />
+<Route exact path="/produto-novo" component={TelaProdutoForm}></Route>
 ```
 
 Agora adicione também:
 
 ```tsx
-<Route exact path="/produtos/editar/:id" component={TelaProdutoForm} />
+<Route exact path="/produtos/editar/:id" component={TelaProdutoForm}></Route>
 ```
 
 As duas rotas usam a mesma tela.
@@ -300,7 +397,7 @@ O formulário será reaproveitado:
 - se não tiver `id`, é cadastro;
 - se tiver `id`, é edição.
 
-### 6.5 Adicionar o botão `Editar` na tela `Comes`
+### 6.6 Adicionar o botão `Editar` na tela `Comidas`
 
 Abra:
 
@@ -308,12 +405,30 @@ Abra:
 src/pages/TelaComes/TelaComes.tsx
 ```
 
-Na listagem de produtos, adicione um botão para editar.
-
-Perto do botão `Adicionar`, coloque:
+Confira se `IonButton` está no import do Ionic. Ele já deve estar, porque a tela usa o botão `Adicionar`:
 
 ```tsx
-<IonButton routerLink={`/produtos/editar/${produto.id}`}>
+import {
+  IonButton,
+  IonButtons,
+  IonCheckbox,
+  IonContent,
+  IonHeader,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonModal,
+  IonPage,
+  IonTitle,
+  IonToolbar,
+  useIonViewWillEnter,
+} from '@ionic/react';
+```
+
+Na listagem de produtos, perto do botão `Adicionar`, coloque:
+
+```tsx
+<IonButton routerLink={`/produtos/editar/${comida.id}`}>
   Editar
 </IonButton>
 ```
@@ -326,7 +441,7 @@ Se o produto tem `id` igual a `'1'`, o botão abre:
 /produtos/editar/1
 ```
 
-### 6.6 Preparar o formulário para cadastro e edição
+### 6.7 Preparar o formulário para cadastro e edição
 
 Abra:
 
@@ -347,20 +462,28 @@ import { useEffect, useState } from 'react';
 Importe também `useParams`:
 
 ```tsx
-import { useHistory, useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router';
 ```
 
 E atualize o import do service:
 
 ```tsx
 import {
-  buscarProdutoPorId,
   cadastrarProduto,
-  editarProduto,
+  buscarProdutoPorId,
+  alterarProduto,
 } from '../../services/produtoService';
 ```
 
-### 6.7 Pegar o `id` da rota
+Se o arquivo ainda tiver só este import:
+
+```tsx
+import { cadastrarProduto } from '../../services/produtoService';
+```
+
+troque pelo import completo acima.
+
+### 6.8 Pegar o `id` da rota
 
 Dentro do componente, logo depois do `history`, adicione:
 
@@ -383,7 +506,17 @@ Se `id` não existe:
 modo cadastro
 ```
 
-### 6.8 Carregar os dados do produto
+Mantenha os estados da Aula 5 no componente:
+
+```tsx
+const [codBarras, setCodBarras] = useState('');
+const [ingredientes, setIngredientes] = useState('');
+const [nome, setNome] = useState('');
+const [preco, setPreco] = useState('');
+const [erro, setErro] = useState('');
+```
+
+### 6.9 Carregar os dados do produto
 
 Depois dos estados, adicione:
 
@@ -393,17 +526,15 @@ useEffect(() => {
     return;
   }
 
-  const produto = buscarProdutoPorId(id);
-
-  if (!produto) {
-    setErro('Produto nao encontrado.');
+  const produtoPorId = buscarProdutoPorId(id);
+  if (!produtoPorId) {
     return;
   }
 
-  setNome(produto.nome);
-  setIngredientes(produto.ingredientes?.join(', ') ?? '');
-  setPreco(String(produto.preco));
-  setCodBarras(produto.codBarras);
+  setCodBarras(produtoPorId?.codBarras);
+  setPreco(produtoPorId?.preco.toString());
+  setNome(produtoPorId?.nome);
+  setIngredientes(produtoPorId?.ingredientes?.join(', ') ?? '');
 }, [id]);
 ```
 
@@ -413,13 +544,13 @@ Ele faz o seguinte:
 
 - se não tem `id`, não precisa carregar nada;
 - se tem `id`, busca o produto;
-- se não encontrar, mostra erro;
+- se não encontrar, para a execução;
 - se encontrar, preenche os campos.
 
 Essa linha:
 
 ```ts
-setIngredientes(produto.ingredientes?.join(', ') ?? '');
+setIngredientes(produtoPorId?.ingredientes?.join(', ') ?? '');
 ```
 
 transforma a lista de ingredientes em texto.
@@ -436,22 +567,22 @@ vira:
 Pao, Carne, Queijo
 ```
 
-### 6.9 Atualizar a função `salvarProduto`
+### 6.10 Atualizar a função `salvarProduto`
 
 Na Aula 5, a função sempre chamava `cadastrarProduto`.
 
 Agora ela precisa decidir:
 
 - cadastrar produto novo;
-- ou editar produto existente.
+- ou alterar produto existente.
 
-Substitua o final da função por:
+Depois de limpar os campos, troque a chamada direta de `cadastrarProduto` por:
 
 ```tsx
-if (estaEditando && id) {
-  editarProduto(id, nome, ingredientes, precoNumerico, codBarras);
+if (estaEditando) {
+  alterarProduto(id, nome, ingredientes, preco, codBarras);
 } else {
-  cadastrarProduto(nome, ingredientes, precoNumerico, codBarras);
+  cadastrarProduto(nome, ingredientes, preco, codBarras);
 }
 
 history.push('/comes');
@@ -462,28 +593,35 @@ A função completa fica assim:
 ```tsx
 const salvarProduto = () => {
   setErro('');
-
-  if (nome === '') {
-    setErro('Informe o nome do produto.');
+  if (codBarras == '' || codBarras == null) {
+    setErro('O cod de barras esta com valor invalido');
     return;
   }
 
-  if (preco === '') {
-    setErro('Informe o preco.');
+  if (ingredientes == '' || ingredientes == null) {
+    setErro('Os ingredientes estão com valor invalido');
     return;
   }
 
-  const precoNumerico = Number(preco.replace(',', '.'));
-
-  if (Number.isNaN(precoNumerico)) {
-    setErro('Informe um preco valido.');
+  if (nome == '' || nome == null) {
+    setErro('O nome esta com valor invalido');
     return;
   }
 
-  if (estaEditando && id) {
-    editarProduto(id, nome, ingredientes, precoNumerico, codBarras);
+  if (preco == '' || preco == null) {
+    setErro('O preco esta com valor invalido');
+    return;
+  }
+
+  setCodBarras('');
+  setIngredientes('');
+  setNome('');
+  setPreco('');
+
+  if (estaEditando) {
+    alterarProduto(id, nome, ingredientes, preco, codBarras);
   } else {
-    cadastrarProduto(nome, ingredientes, precoNumerico, codBarras);
+    cadastrarProduto(nome, ingredientes, preco, codBarras);
   }
 
   history.push('/comes');
@@ -492,37 +630,7 @@ const salvarProduto = () => {
 
 Repare que a validação continua igual.
 
-Nome e preço são obrigatórios tanto para cadastrar quanto para editar.
-
-### 6.10 Alterar título e texto do botão
-
-No `IonTitle`, troque:
-
-```tsx
-<IonTitle className="cardapio-toolbar-title">Novo produto</IonTitle>
-```
-
-por:
-
-```tsx
-<IonTitle className="cardapio-toolbar-title">
-  {estaEditando ? 'Editar produto' : 'Novo produto'}
-</IonTitle>
-```
-
-No botão, troque:
-
-```tsx
-Salvar produto
-```
-
-por:
-
-```tsx
-{estaEditando ? 'Salvar alterações' : 'Salvar produto'}
-```
-
-Assim a mesma tela fica clara para os dois casos.
+Os campos são obrigatórios tanto para cadastrar quanto para editar.
 
 ### 6.11 Recarregar a lista quando voltar
 
@@ -530,150 +638,135 @@ Na Aula 5, `TelaComes` já passou a usar:
 
 ```tsx
 useIonViewWillEnter(() => {
-  setProdutos(buscarComidas());
+  setProdutos(buscarTodosOsProdutos());
 });
 ```
 
 Mantenha esse trecho.
 
-Ele é o que faz a lista atualizar quando o formulário volta para `Comes`.
+Ele é o que faz a lista atualizar quando o formulário volta para `Comidas`.
 
 ## 7. Código completo
 
 ### `src/services/produtoService.ts`
 
 ```ts
-import type { Produto } from '../types/Produto';
+import { map } from 'ionicons/icons';
+import { Produto } from '../types/Produto';
 
-const comidas: Produto[] = [
+let comidas: Produto[] = [
   {
     ativo: true,
     codBarras: '123',
-    ingredientes: ['Pao, Carne, Queijo'],
+    ingredientes: ['Pao', 'Carne', 'Queijo'],
     nome: 'Mc feliz',
     id: '1',
     preco: 36.98,
-    categoria: 'comida',
   },
   {
     ativo: true,
     codBarras: '321',
-    ingredientes: ['Pao, Carne, Molho especial'],
+    ingredientes: ['Pao', 'Carne', 'Molho especial'],
     nome: 'Mc melt',
     id: '2',
     preco: 38.02,
-    categoria: 'comida',
   },
-];
-
-const bebidas: Produto[] = [
   {
-    ativo: true,
-    codBarras: '456',
-    ingredientes: ['Lata 350ml'],
-    nome: 'Refrigerante',
+    ativo: false,
+    codBarras: '213',
+    ingredientes: ['Pao', 'Carne', 'Alface', 'Queijo'],
+    nome: 'Big mac',
     id: '3',
-    preco: 6.5,
-    categoria: 'bebida',
+    preco: 40.05,
   },
 ];
 
-const gerarProximoId = () => {
-  const ultimoProduto = comidas[comidas.length - 1];
-
-  if (!ultimoProduto) {
-    return '1';
-  }
-
-  return String(Number(ultimoProduto.id) + 1);
-};
-
-export const buscarComidas = (): Produto[] => {
+export const buscarTodosOsProdutos = (): Produto[] => {
   return comidas;
-};
-
-export const buscarBebidas = (): Produto[] => {
-  return bebidas;
-};
-
-export const buscarProdutoPorId = (id: string): Produto | undefined => {
-  const todosProdutos = [...comidas, ...bebidas];
-
-  return todosProdutos.find((produto) => produto.id === id);
 };
 
 export const cadastrarProduto = (
   nome: string,
   ingredientes: string,
-  preco: number,
+  preco: string,
   codBarras: string,
 ) => {
-  const novoProduto: Produto = {
-    id: gerarProximoId(),
-    nome: nome,
-    ingredientes: [ingredientes],
-    preco: preco,
-    codBarras: codBarras,
+  let id = Math.max(...comidas.map(c => Number(c.id)));
+  id = id + 1;
+
+  const precoTratado = Number(preco.replace('R$', '').replace(',', '.'));
+  const novoProduto = {
+    nome,
+    ingredientes: ingredientes.split(','),
+    preco: precoTratado,
+    codBarras,
+    id: id.toString(),
     ativo: true,
-    categoria: 'comida',
   };
 
   comidas.push(novoProduto);
 };
 
-export const editarProduto = (
+export const alterarProduto = (
   id: string,
   nome: string,
   ingredientes: string,
-  preco: number,
+  preco: string,
   codBarras: string,
 ) => {
   const produto = buscarProdutoPorId(id);
-
   if (!produto) {
     return;
   }
 
-  produto.nome = nome;
-  produto.ingredientes = [ingredientes];
-  produto.preco = preco;
-  produto.codBarras = codBarras;
+  comidas = comidas.map((comida) => {
+    if (comida.id == id) {
+      const precoTratado = Number(preco.replace('R$', '').replace(',', '.'));
+      comida.id = id;
+      comida.nome = nome;
+      comida.ingredientes = ingredientes.split(',');
+      comida.preco = precoTratado;
+      comida.codBarras = codBarras;
+    }
+    return comida;
+  });
+};
+
+export const buscarProdutoPorId = (id: string): Produto | null => {
+  const todasAsComidas = comidas;
+
+  const produtoEncontrado = todasAsComidas.find((comida) => comida.id == id);
+
+  if (!produtoEncontrado) return null;
+
+  return produtoEncontrado;
 };
 ```
 
 ### `src/pages/TelaProdutoForm/TelaProdutoForm.tsx`
 
 ```tsx
+import { IonButton, IonContent, IonHeader, IonInput, IonItem, IonList, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 import { useEffect, useState } from 'react';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonInput,
-  IonItem,
-  IonList,
-  IonPage,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
-import { useHistory, useParams } from 'react-router-dom';
-
-import {
-  buscarProdutoPorId,
-  cadastrarProduto,
-  editarProduto,
-} from '../../services/produtoService';
 import '../Cardapio.css';
+import { useHistory, useParams } from 'react-router';
 
-const TelaProdutoForm = () => {
+import {
+  cadastrarProduto,
+  buscarProdutoPorId,
+  alterarProduto,
+} from '../../services/produtoService';
+
+export const TelaProdutoForm = () => {
   const history = useHistory();
+
   const { id } = useParams<{ id?: string }>();
   const estaEditando = id !== undefined;
 
-  const [nome, setNome] = useState('');
-  const [ingredientes, setIngredientes] = useState('');
-  const [preco, setPreco] = useState('');
   const [codBarras, setCodBarras] = useState('');
+  const [ingredientes, setIngredientes] = useState('');
+  const [nome, setNome] = useState('');
+  const [preco, setPreco] = useState('');
   const [erro, setErro] = useState('');
 
   useEffect(() => {
@@ -681,73 +774,76 @@ const TelaProdutoForm = () => {
       return;
     }
 
-    const produto = buscarProdutoPorId(id);
-
-    if (!produto) {
-      setErro('Produto nao encontrado.');
+    const produtoPorId = buscarProdutoPorId(id);
+    if (!produtoPorId) {
       return;
     }
 
-    setNome(produto.nome);
-    setIngredientes(produto.ingredientes?.join(', ') ?? '');
-    setPreco(String(produto.preco));
-    setCodBarras(produto.codBarras);
+    setCodBarras(produtoPorId?.codBarras);
+    setPreco(produtoPorId?.preco.toString());
+    setNome(produtoPorId?.nome);
+    setIngredientes(produtoPorId?.ingredientes?.join(', ') ?? '');
   }, [id]);
 
   const salvarProduto = () => {
     setErro('');
-
-    if (nome === '') {
-      setErro('Informe o nome do produto.');
+    if (codBarras == '' || codBarras == null) {
+      setErro('O cod de barras esta com valor invalido');
       return;
     }
 
-    if (preco === '') {
-      setErro('Informe o preco.');
+    if (ingredientes == '' || ingredientes == null) {
+      setErro('Os ingredientes estão com valor invalido');
       return;
     }
 
-    const precoNumerico = Number(preco.replace(',', '.'));
-
-    if (Number.isNaN(precoNumerico)) {
-      setErro('Informe um preco valido.');
+    if (nome == '' || nome == null) {
+      setErro('O nome esta com valor invalido');
       return;
     }
 
-    if (estaEditando && id) {
-      editarProduto(id, nome, ingredientes, precoNumerico, codBarras);
+    if (preco == '' || preco == null) {
+      setErro('O preco esta com valor invalido');
+      return;
+    }
+
+    setCodBarras('');
+    setIngredientes('');
+    setNome('');
+    setPreco('');
+
+    if (estaEditando) {
+      alterarProduto(id, nome, ingredientes, preco, codBarras);
     } else {
-      cadastrarProduto(nome, ingredientes, precoNumerico, codBarras);
+      cadastrarProduto(nome, ingredientes, preco, codBarras);
     }
 
     history.push('/comes');
   };
 
   return (
-    <IonPage className="cardapio-page">
+    <IonPage>
       <IonHeader>
-        <IonToolbar className="cardapio-toolbar">
-          <IonTitle className="cardapio-toolbar-title">
-            {estaEditando ? 'Editar produto' : 'Novo produto'}
+        <IonToolbar>
+          <IonTitle>
+            Novo Produto
           </IonTitle>
         </IonToolbar>
       </IonHeader>
-
       <IonContent className="cardapio-content">
-        <div className="cardapio-container">
-          {erro !== '' && <p className="mensagem-erro">{erro}</p>}
+        <div className="cardapio-content">
+          {erro !== '' && <p className="erro">{erro}</p>}
 
-          <IonList className="formulario-produto">
+          <IonList>
             <IonItem>
               <IonInput
                 label="Nome"
                 labelPlacement="stacked"
                 value={nome}
-                placeholder="Ex: Xis salada"
-                onIonInput={(event) =>
-                  setNome(String(event.detail.value ?? ''))
-                }
-              />
+                placeholder="Ex: xis salada"
+                onIonInput={(event) => setNome(event.detail.value ?? '')}
+              >
+              </IonInput>
             </IonItem>
 
             <IonItem>
@@ -755,11 +851,11 @@ const TelaProdutoForm = () => {
                 label="Ingredientes"
                 labelPlacement="stacked"
                 value={ingredientes}
-                placeholder="Ex: Pao, queijo, alface"
-                onIonInput={(event) =>
-                  setIngredientes(String(event.detail.value ?? ''))
-                }
-              />
+                placeholder="Ex:pao,carne,queijo"
+                helperText="separe os ingredientes por virgula"
+                onIonInput={(event) => setIngredientes(event.detail.value ?? '')}
+              >
+              </IonInput>
             </IonItem>
 
             <IonItem>
@@ -767,37 +863,34 @@ const TelaProdutoForm = () => {
                 label="Preco"
                 labelPlacement="stacked"
                 value={preco}
-                placeholder="Ex: 28,50"
+                placeholder="R$12,50"
                 inputMode="decimal"
-                onIonInput={(event) =>
-                  setPreco(String(event.detail.value ?? ''))
-                }
-              />
+                onIonInput={(event) => setPreco(event.detail.value ?? '')}
+              >
+
+              </IonInput>
             </IonItem>
 
             <IonItem>
               <IonInput
-                label="Codigo de barras"
+                label="Cod Barras"
                 labelPlacement="stacked"
                 value={codBarras}
-                placeholder="Ex: 7890000000000"
-                onIonInput={(event) =>
-                  setCodBarras(String(event.detail.value ?? ''))
-                }
-              />
+                placeholder="Ex: 0000000000000"
+                onIonInput={(event) => setCodBarras(event.detail.value ?? '')}
+              >
+              </IonInput>
             </IonItem>
           </IonList>
 
           <IonButton expand="block" onClick={salvarProduto}>
-            {estaEditando ? 'Salvar alterações' : 'Salvar produto'}
+            salvar produto
           </IonButton>
         </div>
       </IonContent>
     </IonPage>
   );
 };
-
-export default TelaProdutoForm;
 ```
 
 ### `src/pages/TabsPrincipal/TabsPrincipal.tsx`
@@ -805,25 +898,60 @@ export default TelaProdutoForm;
 Dentro de `IonRouterOutlet`, as rotas do formulário ficam assim:
 
 ```tsx
-<Route exact path="/produtos/novo" component={TelaProdutoForm} />
-<Route exact path="/produtos/editar/:id" component={TelaProdutoForm} />
+<Route exact path="/produto-novo" component={TelaProdutoForm}></Route>
+<Route exact path="/produtos/editar/:id" component={TelaProdutoForm}></Route>
+```
+
+O trecho completo do `IonRouterOutlet` fica assim:
+
+```tsx
+<IonRouterOutlet>
+  <Route exact path="/bebes" component={TelaBebes}></Route>
+  <Route exact path="/comes" component={TelaComes}></Route>
+  <Route exact path="/pedido" component={TelaPedido}></Route>
+  <Route exact path="/produto-novo" component={TelaProdutoForm}></Route>
+  <Route exact path="/produtos/editar/:id" component={TelaProdutoForm}></Route>
+  <Route exact path="/">
+    <Redirect to="/bebes"></Redirect>
+  </Route>
+</IonRouterOutlet>
 ```
 
 ### `src/pages/TelaComes/TelaComes.tsx`
 
-Na lista de produtos, o botão de edição fica assim:
+Na lista de produtos, os botões ficam assim:
 
 ```tsx
-<IonButton routerLink={`/produtos/editar/${produto.id}`}>
+<IonButton onClick={() => abrirModal(comida)}>Adicionar</IonButton>
+<IonButton routerLink={`/produtos/editar/${comida.id}`}>
   Editar
 </IonButton>
+```
+
+Eles ficam dentro do `produtos.map`, no mesmo `IonItem` que mostra nome, ingredientes e preço:
+
+```tsx
+{produtos.map((comida) => (
+  <IonItem className="cardapio-list" key={comida.id}>
+    <IonLabel>
+      <h2 className="cardapio-fonte">{comida.nome}</h2>
+      <p>{comida.ingredientes?.join(', ')}</p>
+      <p>{formatarPreco(comida.preco)}</p>
+    </IonLabel>
+
+    <IonButton onClick={() => abrirModal(comida)}>Adicionar</IonButton>
+    <IonButton routerLink={`/produtos/editar/${comida.id}`}>
+      Editar
+    </IonButton>
+  </IonItem>
+))}
 ```
 
 E a tela deve continuar recarregando a lista quando aparecer:
 
 ```tsx
 useIonViewWillEnter(() => {
-  setProdutos(buscarComidas());
+  setProdutos(buscarTodosOsProdutos());
 });
 ```
 
@@ -834,7 +962,7 @@ useIonViewWillEnter(() => {
 Se a rota ficar assim:
 
 ```tsx
-<Route exact path="/produtos/editar" component={TelaProdutoForm} />
+<Route exact path="/produtos/editar" component={TelaProdutoForm}></Route>
 ```
 
 o formulário não recebe o `id`.
@@ -842,7 +970,7 @@ o formulário não recebe o `id`.
 O correto é:
 
 ```tsx
-<Route exact path="/produtos/editar/:id" component={TelaProdutoForm} />
+<Route exact path="/produtos/editar/:id" component={TelaProdutoForm}></Route>
 ```
 
 ### 8.2 Montar o link sem o `id`
@@ -858,45 +986,85 @@ a tela abre sem saber qual produto editar.
 O correto é:
 
 ```tsx
-<IonButton routerLink={`/produtos/editar/${produto.id}`}>
+<IonButton routerLink={`/produtos/editar/${comida.id}`}>
   Editar
 </IonButton>
 ```
 
-### 8.3 Esquecer de carregar os campos
+### 8.3 Usar o nome errado da função
+
+Neste projeto, a função de edição no service se chama:
+
+```ts
+alterarProduto
+```
+
+Então o import correto é:
+
+```tsx
+import {
+  cadastrarProduto,
+  buscarProdutoPorId,
+  alterarProduto,
+} from '../../services/produtoService';
+```
+
+Se chamar `editarProduto`, o código não compila porque essa função não existe neste service.
+
+### 8.4 Esquecer de carregar os campos
 
 Se o formulário abre vazio na edição, confira se o `useEffect` está buscando o produto e chamando:
 
 ```tsx
-setNome(produto.nome);
-setIngredientes(produto.ingredientes?.join(', ') ?? '');
-setPreco(String(produto.preco));
-setCodBarras(produto.codBarras);
+setCodBarras(produtoPorId?.codBarras);
+setPreco(produtoPorId?.preco.toString());
+setNome(produtoPorId?.nome);
+setIngredientes(produtoPorId?.ingredientes?.join(', ') ?? '');
 ```
 
-### 8.4 Chamar sempre `cadastrarProduto`
+### 8.5 Chamar sempre `cadastrarProduto`
 
-Se o app cria outro produto em vez de editar, confira a decisão dentro de `salvarProduto`:
+Se o app cria outro produto em vez de editar, confira a decisão dentro de `salvarProduto`.
+
+Errado:
 
 ```tsx
-if (estaEditando && id) {
-  editarProduto(id, nome, ingredientes, precoNumerico, codBarras);
+cadastrarProduto(nome, ingredientes, preco, codBarras);
+```
+
+Correto:
+
+```tsx
+if (estaEditando) {
+  alterarProduto(id, nome, ingredientes, preco, codBarras);
 } else {
-  cadastrarProduto(nome, ingredientes, precoNumerico, codBarras);
+  cadastrarProduto(nome, ingredientes, preco, codBarras);
 }
 ```
 
-### 8.5 O produto editado não aparece atualizado
+### 8.6 Usar `buscarComidas`
 
-Confira se `TelaComes` ainda usa:
+Neste projeto, a função de listagem se chama:
+
+```ts
+buscarTodosOsProdutos
+```
+
+Então a tela `Comidas` deve recarregar a lista assim:
 
 ```tsx
 useIonViewWillEnter(() => {
-  setProdutos(buscarComidas());
+  setProdutos(buscarTodosOsProdutos());
 });
 ```
 
-Esse trecho recarrega a lista quando a tela aparece novamente.
+### 8.7 Importar `useParams` de outro lugar
+
+Neste projeto, o import usado é:
+
+```tsx
+import { useHistory, useParams } from 'react-router';
+```
 
 ## 9. Resumo
 
@@ -909,26 +1077,12 @@ Você aprendeu a:
 - buscar um produto pelo `id`;
 - preencher os estados do formulário com dados existentes;
 - reaproveitar a mesma tela para cadastro e edição;
-- decidir entre `cadastrarProduto` e `editarProduto`;
+- decidir entre `cadastrarProduto` e `alterarProduto`;
 - alterar os dados de um produto no service;
-- voltar para a tela `Comes` após salvar.
+- voltar para a tela `Comidas` após salvar.
 
 O mais importante aqui é entender que edição precisa de identificação.
 
 Cadastro cria um produto novo.
 
 Edição procura um produto existente e altera seus campos.
-
-## 10. Próximo passo
-
-Na próxima aula, vamos começar a proteger algumas ações do app.
-
-A Aula 7 será sobre login e controle de permissões.
-
-Depois que existe cadastro e edição de produtos, faz sentido perguntar:
-
-```text
-todo usuário pode alterar o cardápio?
-```
-
-Na Aula 7, vamos tratar essa pergunta com um login simples e permissões básicas.
