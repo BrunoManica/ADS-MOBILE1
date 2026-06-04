@@ -146,8 +146,10 @@ export const usuarioEstaLogado = (): boolean => {
 
 export const usuarioEhAdmin = (): boolean => {
   const usuarioLogado = buscarUsuarioLogado();
-
-  return usuarioLogado?.perfil == 'admin';
+  if(usuarioLogado?.perfil == 'admin'){
+    return true
+  }  return false
+  //return usuarioLogado?.perfil == 'admin';
 };
 
 export const sair = () => {
@@ -308,7 +310,7 @@ Deixe o arquivo assim:
 import { Redirect, Route } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import TabsPrincipal from './pages/TabsPrincipal/TabsPrincipal';
+import { TabsPrincipal } from './pages/TabsPrincipal/TabsPrincipal';
 import { TelaLogin } from './pages/TelaLogin/TelaLogin';
 import { CarrinhoProvider } from './contexts/CarrinhoContext';
 
@@ -413,13 +415,13 @@ import {
   logOutOutline,
   restaurantOutline,
 } from 'ionicons/icons';
-import TelaBebes from '../TelaBebes/TelaBebes';
-import TelaComes from '../TelaComes/TelaComes';
-import TelaPedido from '../TelaPedido/TelaPedido';
+import { TelaBebes }from '../TelaBebes/TelaBebes';
+import { TelaComes }from '../TelaComes/TelaComes';
+import { TelaPedido} from '../TelaPedido/TelaPedido';
 import { TelaProdutoForm } from '../TelaProdutoForm/TelaProdutoForm';
 import { sair, usuarioEstaLogado } from '../../services/authService';
 
-const TabsPrincipal = () => {
+export const TabsPrincipal = () => {
   const history = useHistory();
 
   useEffect(() => {
@@ -471,7 +473,6 @@ const TabsPrincipal = () => {
   );
 };
 
-export default TabsPrincipal;
 ```
 
 Agora teste direto no navegador:
