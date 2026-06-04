@@ -310,6 +310,7 @@ import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import TabsPrincipal from './pages/TabsPrincipal/TabsPrincipal';
 import { TelaLogin } from './pages/TelaLogin/TelaLogin';
+import { CarrinhoProvider } from './contexts/CarrinhoContext';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -327,6 +328,7 @@ setupIonicReact();
 
 const App = () => (
   <IonApp>
+  <CarrinhoProvider>
     <IonReactRouter>
       <IonRouterOutlet>
         <Route exact path="/login" component={TelaLogin}></Route>
@@ -346,6 +348,7 @@ const App = () => (
         </Route>
       </IonRouterOutlet>
     </IonReactRouter>
+    </CarrinhoProvider>
   </IonApp>
 );
 
